@@ -11,6 +11,9 @@ icc.res: icc.rc
 $(MYOPENSSL): openssl.exe
 	$(CP) openssl.exe $@
 
+../$(OPENSSL_VER)/apps/openssl$(OBJSUFX): ../$(OPENSSL_VER)/apps/openssl.c
+	$(BUILD_OSSL)
+
 openssl$(OBJSUFX): $(OSSL_DIR)/apps/openssl$(OBJSUFX)
 	cp $(OSSL_DIR)/apps/openssl$(OBJSUFX) $@
 
