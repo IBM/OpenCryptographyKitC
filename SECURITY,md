@@ -1,0 +1,18 @@
+
+# Security Policy
+
+## Supported Versions
+
+We currently support only the main branch. The FIPS branch cannot be updated, because doing
+so will cause the code to be out od sync with the code that was certified.
+
+## Reporting a Vulnerability
+
+To report a security vulnerability:
+
+Under the repository name, click Security. If you cannot see the "Security" tab,
+select the dropdown menu, and then click Security. Click Report a Vulnerability to open the
+advisory form. Fill out the form and then Submit the report.
+
+Someone from the team will contact you ASAP about the issue.
+
