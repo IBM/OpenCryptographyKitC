@@ -26,6 +26,7 @@ make -k -C icc OPSYS=LINUX all
 make -k -C icc OPSYS=WIN64_VS2022 create_all
 make -k -C icc OPSYS=WIN64_VS2022 all
 ```
+
 This build is not constrained to MS VS 2022 but is tested on that platform.  
 #### Requirements
 Visual studio build tools are required, including mfc.  

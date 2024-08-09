@@ -279,7 +279,7 @@ typedef struct {
 } KDF_TEST;
 
 float version = 0.0; /* Used to compare ICC version numbers */
-int alt_trng = 0; /* Set if ICC_TRNG=ALT is set in the environment */
+char env_trng[256] = ""; /* Set if ICC_TRNG is set in the environment */
 int entropy1 = 0;
 int entropy2 = 0;
 
@@ -329,7 +329,7 @@ static  unsigned char buf1[4096];
 static  unsigned char buf2[4096];
 
 static  int tuner = 0; /*! RNG tuning algorithm, 0 = unset, 1 = heuristic, 2 = estimate */
-
+static int exclude = 0;
 /*
   uncomment to turn on fine grained stack checks so that you can 
   find the deep spots
@@ -536,7 +536,7 @@ int doEVPDigestUnitTest(ICC_CTX *ICC_ctx)
     ICC_EVP_MD_CTX_cleanup(ICC_ctx,md_ctx); 
     ICC_EVP_MD_CTX_free(ICC_ctx,md_ctx);
     check_stack(1);
-    printf("EVP Digest Unit test sucessfully completed!\n");
+    printf("EVP Digest Unit test successfully completed!\n");
   }
   return rv;
 }
@@ -637,7 +637,7 @@ int doEVPCipherUnitTest(ICC_CTX *ICC_ctx)
     check_stack(1);
 
 
-    printf("EVP Cipher Unit test sucessfully completed!\n");	
+    printf("EVP Cipher Unit test successfully completed!\n");	
   }
       
   return rv;
@@ -777,7 +777,7 @@ int doEVPEnvelopeAndSignatureUnitTest(ICC_CTX *ICC_ctx)
       rv = retcode;
     }
     ICC_RSA_free(ICC_ctx,rsa);
-    printf("EVP Envelope And Signature Unit test sucessfully completed!\n");
+    printf("EVP Envelope And Signature Unit test successfully completed!\n");
   }
   if(NULL != status) {
     free(status);
@@ -820,7 +820,7 @@ int doEVPEncodeAndDecodeUnitTest(ICC_CTX *ICC_ctx)
   retcode = ICC_EVP_ENCODE_CTX_free(ICC_ctx,encode_ctx);
   OSSLE(ICC_ctx);
   check_stack(1);
-  printf("EVP Encode And Decode Unit test sucessfully completed!\n");
+  printf("EVP Encode And Decode Unit test successfully completed!\n");
  
   return retcode;
 }
@@ -879,7 +879,7 @@ int doEVPUnitTest(ICC_CTX *ICC_ctx)
 	  break;
 	}
     }
-  if (testnum == 0) printf("EVP Unit test sucessfully completed!\n");
+  if (testnum == 0) printf("EVP Unit test successfully completed!\n");
   else /*error occurred*/
     {
       printf("Error occurred in EVP unit test!\n");
@@ -911,7 +911,7 @@ int doRandUnitTest(ICC_CTX *ICC_ctx)
   ICC_RAND_seed(ICC_ctx,buf,1);
   check_stack(1);
   if( ICC_OSSL_SUCCESS == rv) {
-    printf("Rand Unit test sucessfully completed!\n");
+    printf("Rand Unit test successfully completed!\n");
   }
   return rv;
 }
@@ -921,7 +921,7 @@ int doCryptoUnitTest(ICC_CTX *ICC_ctx)
 {
   printf("Starting Crypto unit test...\n");
 
-  printf("Crypto Unit test sucessfully completed!\n");
+  printf("Crypto Unit test successfully completed!\n");
 
   return ICC_OSSL_SUCCESS;
 }
@@ -1000,8 +1000,11 @@ int doKeyUnitTest(ICC_CTX *ICC_ctx) {
       tptr1 = buf1;
       pkey = ICC_EVP_PKEY_new(ICC_ctx);
       retcode = ICC_EVP_PKEY_set1_RSA(ICC_ctx, pkey, rsa);
+      /* pkey can be null if we have induced a trng failure */
+      if (NULL != pkey) { 
       l1 = retcode = ICC_i2d_PublicKey(ICC_ctx,pkey,&tptr1);
       ICC_EVP_PKEY_free(ICC_ctx,pkey);
+      }
       tptr1 = buf1;
       pkey = ICC_d2i_PublicKey(ICC_ctx,ICC_EVP_PKEY_RSA,NULL,&tptr1,l1);
       if (NULL != pkey) {
@@ -1249,10 +1252,10 @@ int doKeyUnitTest(ICC_CTX *ICC_ctx) {
 
     free(dhcvtbuf);
 
-    printf("Key structures sucessfully Freed!\n");
+    printf("Key structures successfully Freed!\n");
 
     if (ICC_OSSL_SUCCESS == rv) {
-      printf("Key unit test sucessfully completed!\n");
+      printf("Key unit test successfully completed!\n");
     }
   }
   OSSLE(ICC_ctx);
@@ -1350,9 +1353,9 @@ int doBNUnitTest(ICC_CTX *ICC_ctx)
   ICC_BN_CTX_free(ICC_ctx,bn_ctx);
   check_stack(1);
  
-  printf("BIGNUM structures sucessfully Freed!\n");
+  printf("BIGNUM structures successfully Freed!\n");
 
-  printf("BIGNUM test sucessfully completed!\n");
+  printf("BIGNUM test successfully completed!\n");
 
   return retcode;	
 }
@@ -1379,7 +1382,7 @@ int doErrorUnitTest(ICC_CTX *ICC_ctx)
   if((NULL == retstring) || strlen(retstring) > 0 ) {
     retcode = ICC_OSSL_SUCCESS;
   }
-  printf("Error Unit test sucessfully completed!\n");
+  printf("Error Unit test successfully completed!\n");
 
   return retcode;
 }
@@ -1407,7 +1410,7 @@ int doCMACUnitTest(ICC_CTX *ICC_ctx)
     ICC_CMAC_CTX_free(ICC_ctx,cmac_ctx);
     check_stack(1);
     OSSLE(ICC_ctx);
-    printf("CMAC Unit test sucessfully completed!\n");
+    printf("CMAC Unit test successfully completed!\n");
   } else {
     printf("CMAC not implemented\n");
   }
@@ -1448,7 +1451,7 @@ int doHMACUnitTest(ICC_CTX *ICC_ctx)
     ICC_HMAC_Final(ICC_ctx,hmac_ctx,Result,&outlen);
     ICC_HMAC_CTX_free(ICC_ctx,hmac_ctx);
     check_stack(1);
-    printf("HMAC Unit test sucessfully completed!\n");
+    printf("HMAC Unit test successfully completed!\n");
   } else {
     printf("HAMC Not implemented\n");
   }
@@ -1583,7 +1586,7 @@ int doAES_GCMUnitTest(ICC_CTX *ICC_ctx)
     ICC_GHASH(ICC_ctx,gcm_ctx,tmp1,tmp2,gcm_ka_plaintext,sizeof(gcm_ka_plaintext));
     check_stack(1);
     if(ICC_OSSL_SUCCESS == rv ) {
-      printf("AES_GCM Unit test sucessfully completed!\n");
+      printf("AES_GCM Unit test successfully completed!\n");
     } 
     ICC_AES_GCM_CTX_free(ICC_ctx,gcm_ctx);
   } else {
@@ -1649,7 +1652,7 @@ int doAES_CCMUnitTest(ICC_CTX *ICC_ctx)
     
     check_stack(1);
     if(ICC_OSSL_SUCCESS == rv ) {
-      printf("AES_CCM Unit test sucessfully completed!\n");
+      printf("AES_CCM Unit test successfully completed!\n");
     }
   }
   if(out) free(out);
@@ -1668,7 +1671,7 @@ int doDESUnitTest(ICC_CTX *ICC_ctx)
   ICC_DES_random_key(ICC_ctx,&cblock);
   ICC_DES_set_odd_parity(ICC_ctx,&cblock);
   check_stack(1);
-  printf("DES Unit test sucessfully completed!\n");
+  printf("DES Unit test successfully completed!\n");
   return ICC_OSSL_SUCCESS;
 }
 
@@ -1834,7 +1837,7 @@ int doEC_KEYTest(ICC_CTX *ICC_ctx)
   if(ec_key1 != NULL) ICC_EC_KEY_free(ICC_ctx,ec_key1);
   if(pkey != NULL) ICC_EVP_PKEY_free(ICC_ctx,pkey);
   if(retcode == ICC_OSSL_SUCCESS) {
-    printf("EC_KEY Unit test sucessfully completed!\n");
+    printf("EC_KEY Unit test successfully completed!\n");
   }
   return retcode;
 }
@@ -1967,7 +1970,7 @@ int doECDHTest(ICC_CTX *ICC_ctx)
     }
 
     if(retcode == ICC_OSSL_SUCCESS) {
-      printf("ECDH Unit test sucessfully completed!\n");
+      printf("ECDH Unit test successfully completed!\n");
     }
   }
   if(NULL != order) ICC_BN_clear_free(ICC_ctx,order);
@@ -2053,7 +2056,7 @@ int doECDSATest(ICC_CTX *ICC_ctx)
       ICC_EC_KEY_check_key(ICC_ctx,ec_key); 
     }    
     if(retcode == ICC_OSSL_SUCCESS) {
-      printf("ECDSA Unit test sucessfully completed!\n");
+      printf("ECDSA Unit test successfully completed!\n");
     } 
   }
   if(NULL != ec_key) ICC_EC_KEY_free(ICC_ctx,ec_key);
@@ -2083,7 +2086,7 @@ int doTRNGTest(ICC_CTX *ICC_ctx,ICC_STATUS *status)
     if(ICC_OK == rv) rv = ICC_OSSL_SUCCESS;
     printf("\n");
     if(rv == ICC_OSSL_SUCCESS) {
-      printf("TRNG Unit test sucessfully completed!\n");
+      printf("TRNG Unit test successfully completed!\n");
     } 
     free(buffer);
   } else {
@@ -2267,7 +2270,7 @@ int doSP800_90_UnitTest(ICC_CTX *ICC_ctx,ICC_STATUS *status)
   }
 
   if(rv == ICC_OSSL_SUCCESS) {
-    printf("SP800-90 PRNG tests sucessfully completed!\n");
+    printf("SP800-90 PRNG tests successfully completed!\n");
   } 
   return rv;
 }
@@ -2362,7 +2365,7 @@ int doKDFTest(ICC_CTX *ICC_ctx)
       }
     }
     if(rv == ICC_OSSL_SUCCESS) {
-      printf("SP800-108 PRNG tests sucessfully completed!\n");
+      printf("SP800-108 PRNG tests successfully completed!\n");
     } 
 
   } else {
@@ -2523,7 +2526,7 @@ int doPKCS8Test(ICC_CTX *ICC_ctx)
     }
   }
   if(rc == ICC_OSSL_SUCCESS) {
-    printf("PKCS#8 tests sucessfully completed!\n");
+    printf("PKCS#8 tests successfully completed!\n");
   } 
   
   return rc;
@@ -3125,20 +3128,19 @@ int doPreInit() {
   }
 
   env = getenv("ICC_TRNG");
-  if ((NULL != env) && (0 == strcasecmp("ALT3", env))) {
-    printf("Testing with alternate TRNG #3\n");
-    alt_trng = 3;
-  } else if ((NULL != env) && (0 == strcasecmp("ALT2", env))) {
-    printf("Testing with alternate TRNG #2\n");
-    alt_trng = 2;
-  } else if ((NULL != env) && (0 == strcasecmp("ALT", env))) {
-    printf("Testing with alternate TRNG #1\n");
-    alt_trng = 1;
+  if ((NULL != env) && (0 == strcasecmp("TRNG_HW", env))) {
+    printf("Testing with TRNG_HW\n");
+    strcpy(env_trng, "TRNG_HW");
+  } else if ((NULL != env) && (0 == strcasecmp("TRNG_OS", env))) {
+    printf("Testing with TRNG_OS\n");
+    strcpy(env_trng, "TRNG_OS");
+  } else if ((NULL != env) && (0 == strcasecmp("TRNG_FIPS", env))) {
+    printf("Testing with TRNG_FIPS\n");
+    strcpy(env_trng, "TRNG_FIPS");
   }
   check_stack(0);
-  if (alt_trng) {
-    ICC_SetValue(NULL, status, ICC_SEED_GENERATOR,
-                 (const void *)TEST_TRNG_NAME);
+  if (0 != strcmp(env_trng, "")) {
+    ICC_SetValue(NULL, status, ICC_SEED_GENERATOR, (const void *)env_trng);
   }
   ICC_SetValue(NULL, status, ICC_RANDOM_GENERATOR,
                (const void *)TEST_PRNG_NAME);
@@ -3208,9 +3210,8 @@ int doPostStartupTest(ICC_CTX *ICC_ctx, ICC_STATUS *status) {
         printf("Attempted to set the PRNG with ICC in an invalid state - "
                "didn't fail\n");
       }
-      if (alt_trng) {
-        retcode =
-            ICC_SetValue(ICC_ctx, status, ICC_SEED_GENERATOR, (char *)"TRNG");
+      if (0 != strcmp(env_trng, "")) {
+        retcode = ICC_SetValue(NULL, status, ICC_SEED_GENERATOR, (const void *)env_trng);
         if (retcode == ICC_OSSL_SUCCESS) {
           printf("Attempted to set the TRNG with ICC in an invalid state - "
                  "didn't fail\n");
@@ -3239,27 +3240,10 @@ int doPostStartupTest(ICC_CTX *ICC_ctx, ICC_STATUS *status) {
       check_stack(1);
       check_status(status, __FILE__, __LINE__);
       printf("Check TRNG %s\n", (rv == ICC_OK) ? "pass" : "fail");
-      switch (alt_trng) {
-      case 0:
-        if (0 != strcmp(value, "TRNG")) {
-          printf("TRNG expected %s, got %s\n", "TRNG", value);
+      if (0 != strcmp(env_trng, "")) {
+        if (0 != strcmp(value, env_trng)) {
+          printf("TRNG expected %s, got %s\n", env_trng, value);
         }
-        break;
-      case 1:
-        if (0 != strcmp(value, "TRNG_ALT")) {
-          printf("TRNG expected %s, got %s\n", "TRNG_ALT", value);
-        }
-        break;
-      case 2:
-        if (0 != strcmp(value, "TRNG_ALT2")) {
-          printf("TRNG expected %s, got %s\n", "TRNG_ALT2", value);
-        }
-        break;
-      case 3:
-        if (0 != strcmp(value, "TRNG_ALT3")) {
-          printf("TRNG expected %s, got %s\n", "TRNG_ALT3", value);
-        }
-        break;
       }
     }
     check_stack(1);
@@ -3467,9 +3451,13 @@ int doUnitTest(int test,char *fips, int unicode)
         testnum = 1;
         while (testnum > 0)
         {
+          if(testnum == exclude) {
+            testnum = testnum + 1;
+          } else {
           OSSLE(ICC_ctx);
           testnum = runTest(ICC_ctx, status, testnum);
         }
+      }
       }
       else
       {
@@ -3479,7 +3467,7 @@ int doUnitTest(int test,char *fips, int unicode)
 
       if (testnum == 0)
       {
-        printf("ICC Unit test sucessfully completed FIPS %s!\n", fips);
+        printf("ICC Unit test successfully completed FIPS %s!\n", fips);
       }
       else
       {
@@ -3543,13 +3531,30 @@ int doUnitTest(int test,char *fips, int unicode)
 
   return rv;
 }
+
+/* from iccversion.h*/
+#ifndef ICC_GIT_BRANCH
+#define ICC_GIT_BRANCH         "n/a"
+#endif
+#ifndef ICC_GIT_HASH
+#define ICC_GIT_HASH           "n/a"
+#endif
+
 static void usage(char *prgname,char *text)
 {
-  printf("Usage: %s [n]/[-u]/[-h]\n",prgname);
+   static const char* ICC_vinfo =
+   {
+     "@(#)GIT_BRANCH:       " ICC_GIT_BRANCH "\n"
+     "@(#)GIT_HASH :        " ICC_GIT_HASH "\n"
+   };
+
+  printf("%s\n", ICC_vinfo);  printf("Usage: %s [n]/[-u]/[-h]\n",prgname);
   printf("       %s runs the ICC BVT tests, this covers most of the API\n",prgname
 	 );
   printf("           note that correct usage of the ICC API is not guaranteed\n");
   printf("       n = a single test number to run\n");
+  printf("       -t <num> RNG tuning algorithm, 0 = unset, 1 = heuristic, 2 = estimate\n");
+  printf("       -x <num> a single test to exclude\n");
   printf("       -u<nicode> start ICC with a Unicode path (Windows only)\n");
   printf("       -h this text\n");
   if(NULL != text) {
@@ -3578,6 +3583,11 @@ int main(int argc, char *argv[])
 	argi++;
       } else {
 	tuner = 2;
+      }
+    } else if(strncmp("-x",argv[argi],2) == 0) {
+      if(argc > (argi+1)) {
+	      exclude = atoi(argv[argi+1]);
+	      argi++;
       }
     } else {
       test = atoi(argv[argi]);

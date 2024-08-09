@@ -90,6 +90,9 @@ int trng_raw(E_SOURCE *E,
     /* 201 is a transient failure, 202 persistent */
     if((icc_failure == 201) || (icc_failure == 202)) {
       failcount = MAX_HT_FAIL +1;
+      /* Pretend to clear the buffer so we goto error */
+      k = 0;
+      E->cnt = 0;
     }
     if(0 == k) {
       E->impl.gb(E,&(E->nbuf[0]), E_ESTB_BUFLEN);

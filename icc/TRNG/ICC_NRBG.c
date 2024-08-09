@@ -68,23 +68,29 @@ typedef struct NRBG_type_t {
   int initialized;  /*!< Flag to say it was used */
 } NRBG_type;
 
+
+/*  In non-FIPS, all platforms default to TRNG_OS and upgrade to TRNG_HW at runtime if available.
+    This is done to prioritise compatibility on the unpredictable range and age of the virtualisatised systems we might run on,
+    while still upgrading and using TRNG_HW in most cases.
+*/
+
 #if (NON_FIPS_ICC == 1) /* Built as non-FIPS */
 
-/* These definitions match the availability of OPENSSL_HW_rand */
+/* These definitions try mirror the availability of OPENSSL_HW_rand to avoid a mismatch (not relevant when we use TRNG_OS) */
 /* X86 Linux and Windows, Solaris x86 */
 #if     (defined(__i386)   || defined(__i386__)   || defined(_M_IX86) || \
          defined(__INTEL__) ||                                          \
          defined(__x86_64) || defined(__x86_64__) || defined(_M_AMD64) ) && ( !(defined(__SunOS) && !defined(__amd64)) \
          )
-
-  static TRNG_TYPE global_trng_type = TRNG_HW;
+  static int global_trng_type_attempted_upgrade = 0;
+  static TRNG_TYPE global_trng_type = TRNG_OS;
 
 #elif defined(__s390__) || defined(__MVS__)
+  static int global_trng_type_attempted_upgrade = 0;
+  static TRNG_TYPE global_trng_type = TRNG_OS;
 
-  static TRNG_TYPE global_trng_type = TRNG_HW;
-
-/* We will do a runtime check for cpu support for darn, present since ISA3.0, and update to TRNG_HW if so */
 #elif defined(__ppc__) || defined(__powerpc__) || defined(_AIX)
+  /* We will do a runtime check for cpu support for darn, present since ISA3.0, and update to TRNG_HW if so */
   static int global_trng_type_attempted_upgrade = 0;
   static TRNG_TYPE global_trng_type = TRNG_OS;
 
@@ -97,7 +103,7 @@ typedef struct NRBG_type_t {
   static TRNG_TYPE global_trng_type = TRNG_FIPS;
 #endif
 
-/* If a user sets TRNG_OS on power, we don't want to upgrade even if HW is available */
+/* If a user explicitly sets a TRNG, we don't want to upgrade even if HW is available */
 int global_trng_type_user_set = 0;
 
 static void TRNG_LocalCleanup(TRNG *T);
@@ -247,6 +253,7 @@ void checkTRNGAlias(char **trngname) {
            *trngname = "TRNG_OS";
         }
       }
+      MARK("TRNG aliased to", *trngname);
     }
   }
 }
@@ -258,6 +265,12 @@ void checkTRNGAlias(char **trngname) {
 extern unsigned icc_failure; /*!< Trigger for induced failure tests */
 int SetTRNGName(char *trngname)
 {
+  if (NULL != trngname) {
+    MARK("Request to set TRNG to", trngname);
+  }
+  else {
+    MARK("Request to set NULL TRNG", "");
+  }
   int rv = 0;
   int i = 0;
   checkTRNGAlias(&trngname);
@@ -288,8 +301,11 @@ TRNG_TYPE SetDefaultTrng(TRNG_TYPE trng) {
   case TRNG_HW:
   case TRNG_FIPS:
     if(TRNG_ARRAY[trng].avail()) {
+      MARK("TRNG set to", TRNG_ARRAY[trng].name);
       global_trng_type = trng;
       global_trng_type_user_set = 1;
+    } else {
+      MARK("TRNG attempted to be set to", TRNG_ARRAY[trng].name);
     }
     break;
   default:
@@ -397,12 +413,39 @@ static void TRNG_ESourceCleanup(E_SOURCE *es)
 
 TRNG_TYPE GetDefaultTrng()
 {
-#if defined(__ppc__) || defined(__powerpc__) || defined(_AIX)
-  if(!global_trng_type_attempted_upgrade && 0 == global_trng_type_user_set && 0 == strcasecmp("TRNG_OS", *trngname) && ALT4_Avail()) {
+#if (NON_FIPS_ICC == 1)
+
+#if     (\
+          (( defined(__i386)   || defined(__i386__)   || defined(_M_IX86) || \
+            defined(__INTEL__) || \
+            defined(__x86_64) || defined(__x86_64__) || defined(_M_AMD64)) && (!(defined(__SunOS) && !defined(__amd64)))) \
+          || \
+          ( defined(__s390__) || defined(__MVS__)) \
+          || \
+          ( defined(__ppc__) || defined(__powerpc__) || defined(_AIX)) \
+        )
+  if(!global_trng_type_attempted_upgrade) {
+    MARK("Testing the availability of TRNG_HW", "");
+
+    if(0 == global_trng_type_user_set) {
+      if (TRNG_FIPS != global_trng_type) {
+        if (ALT4_Avail()) {
+          MARK("Found, switching to TRNG_HW", "");
     global_trng_type = TRNG_HW;
+        } else {
+          MARK("TRNG_HW not available, remaining with", TRNG_ARRAY[global_trng_type].name);  
+        }
+      } else {
+        MARK("TRNG_FIPS set, remaining with", TRNG_ARRAY[global_trng_type].name);
+      }
+    } else {
+      MARK("User TRNG set, remaining with", TRNG_ARRAY[global_trng_type].name);
   }
   global_trng_type_attempted_upgrade = 1;
-#endif
+  }
+
+#endif /*x86_64, z/architecture, power */
+#endif /*non-FIPS*/
   return global_trng_type;
 }
 /*!

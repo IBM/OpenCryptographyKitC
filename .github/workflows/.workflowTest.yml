@@ -6,9 +6,9 @@ name: CI
 on:
   # Triggers the workflow on push or pull request events but only for the "main" branch
   push:
-    branches: [ "main" ]
+    branches: [ "*" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "*" ]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -25,14 +25,12 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: 64-bit Linux debug compile
+#          export LD_LIBRARY_PATH=/home/runner/work/OpenCryptographyKitC/OpenCryptographyKitC/openssl-1.1.1/
         run: |
-          cd icc
-          make OPSYS=AMD64_LINUX CONFIG=debug create_all
-          export LD_LIBRARY_PATH=/home/runner/work/OpenCryptographyKitC/OpenCryptographyKitC/openssl-1.1.1/
-          make -k OPSYS=AMD64_LINUX CONFIG=debug all
-          make -k OPSYS=AMD64_LINUX CONFIG=debug tests
-          make -k OPSYS=AMD64_LINUX CONFIG=debug show_config
-          cd ..
+          make -C icc -k OPSYS=AMD64_LINUX CONFIG=debug create_all
+          make -C icc -k OPSYS=AMD64_LINUX CONFIG=debug all
+          make -C icc -k OPSYS=AMD64_LINUX CONFIG=debug tests
+          make -C icc -k OPSYS=AMD64_LINUX CONFIG=debug show_config
 
   ICC-Compile:
     # a compile only -no test -quick check
@@ -42,14 +40,10 @@ jobs:
 
       - name: 64-bit Linux release compile
         run: |
-          cd icc
-          make -k OPSYS=AMD64_LINUX CONFIG=release create_all
-          make -k OPSYS=AMD64_LINUX CONFIG=release all
-          make -k OPSYS=AMD64_LINUX CONFIG=release iccpkg
-          make -k OPSYS=AMD64_LINUX CONFIG=release show_config
-          cd ..
-          cd iccpkg
-          make -k OPSYS=AMD64_LINUX CONFIG=release all
-          cd ..
+          make -C icc -k OPSYS=AMD64_LINUX CONFIG=release create_all
+          make -C icc -k OPSYS=AMD64_LINUX CONFIG=release all
+          make -C icc -k OPSYS=AMD64_LINUX CONFIG=release iccpkg
+          make -C icc -k OPSYS=AMD64_LINUX CONFIG=release show_config
+          make -C iccpkg -k OPSYS=AMD64_LINUX CONFIG=release all
 
  

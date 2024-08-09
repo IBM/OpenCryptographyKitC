@@ -131,9 +131,9 @@ ICC_UINT64 RdCTR_raw() {
 #elif defined(__sun__) && defined(__i386__) && defined(__GNUC__)
 
 ICC_UINT64 RdCTR_raw() {
-    ICC_UINT64 lo;
+    ICC_UINT32 lo;
     __asm__ __volatile__("rdtsc\n" : "=a" (lo) : : "edx");
-    return lo;
+    return (ICC_UINT64)lo;
 }
 
 /* End  Solaris x86 */

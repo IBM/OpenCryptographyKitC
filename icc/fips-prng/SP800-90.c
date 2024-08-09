@@ -332,7 +332,7 @@ TRNG_ERRORS PRNG_GenerateRandomSeed(PRNG_CTX *P, unsigned int n,
         icc_failure = 0; /* Simulate a transient failure of a TRNG */
       }
       /* Try again, we should have changed the TRNG now */
-      rv = TRNG_GenerateRandomSeed(prng->trng, n, buf);
+      /* rv = TRNG_GenerateRandomSeed(prng->trng, n, buf); */
       if((TRNG_OK != rv)  || (406 == icc_failure) ) {
          prng->state = SP800_90CRIT;
          prng->error_reason = ERRAT("TRNG failure, low entropy");

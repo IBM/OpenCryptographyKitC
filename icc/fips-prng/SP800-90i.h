@@ -237,7 +237,7 @@ typedef struct {
   unsigned int Auto;            /*!< Automatic, auto-reseed, auto-chunk large requests*/
   union {
    unsigned char c[4];         /*!< the number of times the Generate function was called since last seeded */
-   uint32_t u;                 /* Messy because it's merged in the PRNG's */
+   uint32_t u;                 /* it's merged in the PRNG's */
   } CallCount;
   SP800_90STATE state;         /*!< The DRBG state - includes extra self test states */
   SP800_90PRNG_t *prng;        /*!< A pointer to the instance of this class of DRBG */

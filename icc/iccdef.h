@@ -6,14 +6,16 @@
 // in the file LICENSE in the source distribution.
 *************************************************************************/
 
-#if defined(WIN64)
+#if defined(_WIN32)
 #include "BaseTsd.h"
+#elif defined(__sun)
+#include <inttypes.h>
 #else
 #include <stdint.h>
 #endif
 
 
-#if defined(_WIN64)
+#if defined(_WIN32)
 #define ICC_INT32   INT32
 #define ICC_UINT32  UINT32
 #else
@@ -24,7 +26,7 @@
 /*  Can't trust long, which is 4 bytes on windows, 8 on linux
     stdint.h should be available everywhere. */
 
-#if defined(WIN64)
+#if defined(_WIN32)
 #define ICC_INT64   INT64
 #define ICC_UINT64  UINT64
 #else

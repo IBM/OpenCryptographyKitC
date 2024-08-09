@@ -1540,7 +1540,6 @@ static void iccGenerateRSASig (ICC_STATUS *stat,const unsigned char *key, int le
      It has no impact to the security of the module       
      Output is dumped to stdout.
      @param stat A pointer to an ICC_STATUS struct
-     @param key DER encoded key
      @param len length of key 
      \debug 
      Code: iccGenerateRSA: controlled by KNOWN , used to generate RSA known answer data

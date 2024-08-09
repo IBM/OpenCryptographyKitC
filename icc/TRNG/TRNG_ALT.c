@@ -40,7 +40,9 @@
 
 
 static int fd_alt = -1;
-
+#if defined(_WIN32)
+static BCRYPT_ALG_HANDLE hProvider = NULL;
+#endif
 /*! Pre-init function for TRNG_ALT
 
 */
@@ -89,10 +91,12 @@ static int alt_read(unsigned char *buffer,int n)
     break;
   case -3:
 #if defined(_WIN32)
+  {
     NTSTATUS status = 0;
-    status = BCryptGenRandom(BCRYPT_RNG_ALG_HANDLE, (PUCHAR)buffer, n, 0);
-    if(status != STATUS_SUCCESS) {
-      rv = TRNG_REQ_SIZE; /* One of the parameters was likely not correct */
+    status = BCryptGenRandom(hProvider, (PUCHAR)buffer, n, 0);
+    if(!BCRYPT_SUCCESS(status)) {
+      rv = TRNG_REQ_SIZE; /* One of the parameters was likely not correct, or bad provider */
+    }
     }
 #endif
     break;
@@ -124,18 +128,17 @@ TRNG_ERRORS ALT_Init(E_SOURCE *E, unsigned char *pers, int perl)
   /* Else probe for something else */
   if(-1 == fd_alt) {
 #if defined(_WIN32)
+  {
     #define SIZE 8
     /* ON Windows ..... */
     /* If no HW RNG, OS RNG source */
     NTSTATUS status = 0;
-    int tmpSize = SIZE; /* 64 bits, small test of availability */
-    unsigned char tmp[SIZE];
-    status = BCryptGenRandom(BCRYPT_RNG_ALG_HANDLE, (PUCHAR)&tmp, tmpSize, 0); /* Using a pseudo-handle */
-
-    if(status == STATUS_SUCCESS) {
+    status = BCryptOpenAlgorithmProvider(&hProvider, BCRYPT_RNG_ALGORITHM, NULL, 0);
+    if(BCRYPT_SUCCESS(status)) {
       fd_alt = -3;
     } else {
-      rv = TRNG_INIT;
+      rv = TRNG_INIT; /*error*/
+    }
     }
 #else
     /* On Unix .... */
@@ -209,11 +212,15 @@ TRNG_ERRORS ALT_Cleanup(E_SOURCE *E)
 
 void ALT_Final()
 {
-#if !defined(_WIN32)
+#if defined(_WIN32)
+ if((-3 == fd_alt) && (0 != hProvider)) {
+   BCryptCloseAlgorithmProvider(hProvider, 0);
+   hProvider = 0;
+ }
+#else 
   if(fd_alt >= 0) {
     close(fd_alt);
     fd_alt = -1;
   }
 #endif
-
 }

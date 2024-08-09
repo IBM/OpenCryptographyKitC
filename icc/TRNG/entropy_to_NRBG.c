@@ -68,16 +68,13 @@ int conditioner(TRNG *T, unsigned char* outbuf, unsigned len)
       if( 0 != trng_raw(&(T->econd),tbuf,SHA_DIGEST_SIZE) ) {
         rv = SetRNGError("Insufficient entropy",__FILE__,__LINE__);
         if(TRNG_OK != rv) {
-          break;
+          HMAC_CTX_cleanup(T->cond.hctx);
+          return rv;
         }          
       }
       HMAC_Update(T->cond.hctx,tbuf,sizeof(tbuf));
     }
-    if(TRNG_RESTART == rv) {
-      TRNG_TRNG_Init(T,-1);
-      rv = TRNG_OK;
-      continue;
-    }
+
     HMAC_Final(T->cond.hctx,tbuf,&mlen);
     
     for(i = 0; (i < mlen) && (n < len); ) {
@@ -120,7 +117,10 @@ TRNG_ERRORS Entropy_to_TRNG(TRNG *T, unsigned char *data, unsigned int len)
     {
       for (l = 0; l < len; l += SHA_DIGEST_SIZE)
       {
-        conditioner(T, buffer, SHA_DIGEST_SIZE);
+        rv = conditioner(T, buffer, SHA_DIGEST_SIZE);
+        if (TRNG_OK != rv) {
+          return rv;
+        }
         e = pmax4(buffer,SHA_DIGEST_SIZE);
         if(e < 50) {
           break;
@@ -137,9 +137,8 @@ TRNG_ERRORS Entropy_to_TRNG(TRNG *T, unsigned char *data, unsigned int len)
     if (j >= TRNG_RETRIES)
     {
       rv = SetRNGError("Unable to obtain sufficient entropy", __FILE__, __LINE__);
-      if(TRNG_OK == rv) {
-        j = 0;
-        continue;
+      if(TRNG_OK != rv) {
+        return rv;
       }
     }
     /* Final sanity check, we got out, is our overall entropy good with a compression function 
@@ -149,7 +148,9 @@ TRNG_ERRORS Entropy_to_TRNG(TRNG *T, unsigned char *data, unsigned int len)
     if (!EntropyOK(T))
     {
       rv = SetRNGError("Long term entropy is below acceptable limits", __FILE__, __LINE__);
-      if(TRNG_OK == rv) continue;
+      if (TRNG_OK != rv) {
+        return rv;
+      }
     }
     /*!
     \FIPS
@@ -171,10 +172,10 @@ TRNG_ERRORS Entropy_to_TRNG(TRNG *T, unsigned char *data, unsigned int len)
       m++;
       if(m > 5) {
         rv = SetRNGError("Repeated duplicate seeds from TRNG", __FILE__, __LINE__);
-        if(TRNG_OK == rv) {
-          continue;
+        if (TRNG_OK != rv) {
+          EVP_MD_CTX_reset(T->md_ctx);
+          return rv;
         }
-        break;
       }
       continue;
     }

@@ -152,9 +152,6 @@ static int hasN = 1; /*!< Used to enable/disable the N/ (Non-FIPS) tree */
 
 #include "gsk_wrap2_a.c" /* Use #include because of the number of shared statics */
 #if 0
-/* GREAT idea, doesn't work because the FIPS callbacks don't get 
-  activated because those are down inside the crypto libs 
-*/
 #include "name_cache.c"  /* Interacts closely with this file as it takes over functions */
 #endif
 

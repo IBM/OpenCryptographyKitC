@@ -14,7 +14,7 @@
 #
 #
 
-ifeq ($($strip $(IS_FIPS)),)
+ifeq ($(strip $(IS_FIPS)),)
    MYICC = newicc
 else
    MYICC = icc
