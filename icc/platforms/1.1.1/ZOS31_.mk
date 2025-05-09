@@ -13,6 +13,7 @@ ASM_OBJS = s390xcpuid.o s390x.o s390x-mont.o bn_nist.o ecp_nist.o  s390xcap.o s3
 	keccak1600-s390x.o ecp_s390x_nistp.o \
 	ebcdic.o async_null.o  \
 	chacha-s390x.o poly1305-s390x.o \
+	hmac_s390x.o \
 
 csvquery.o: asm/zos/csvquery.s
 	-as -aegimrsx=$^.list -m"GOFF,SYSPARM(USE_XPLINK),ESD" $^
