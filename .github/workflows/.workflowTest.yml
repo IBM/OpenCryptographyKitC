@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: 64-bit Linux debug compile
 #          export LD_LIBRARY_PATH=/home/runner/work/OpenCryptographyKitC/OpenCryptographyKitC/openssl-1.1.1/
@@ -36,7 +36,7 @@ jobs:
     # a compile only -no test -quick check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: 64-bit Linux release compile
         run: |
