@@ -15,13 +15,14 @@ icc.res: icc.rc
 $(MYOPENSSL): openssl.exe
 	$(CP) openssl.exe $@
 
+../$(OPENSSL_VER)/apps/openssl$(OBJSUFX): ../$(OPENSSL_VER)/apps/openssl.c
+	$(BUILD_OSSL)
+
 openssl$(OBJSUFX): $(OSSL_DIR)/apps/openssl$(OBJSUFX)
 	cp $(OSSL_DIR)/apps/openssl$(OBJSUFX) $@
 
-
-openssl.exe: openssl$(OBJSUFX) Build_OSSL_Complete $(E_OBJ) $(SLIBCRYPTO) $(SLIBSSL)  platform$(OBJSUFX)
-	$(LD) $(LDFLAGS) openssl$(OBJSUFX) platform$(OBJSUFX) $(E_OBJ)   $(SLIBSSL) $(SLIBCRYPTO) $(OPENSSL_LIBS) $(LDLIBS) ws2_32.lib
-	mt -manifest $@.manifest -outputresource:$@\;1
+openssl.exe: openssl$(OBJSUFX) Build_OSSL_Complete $(E_OBJ) $(SLIBCRYPTO_OBJS) $(SLIBSSL_OBJS) platform$(OBJSUFX)
+	$(LD) $(LDFLAGS) openssl$(OBJSUFX) platform$(OBJSUFX) $(E_OBJ) $(SLIBCRYPTO_OBJS) $(SLIBSSL_OBJS) $(OPENSSL_LIBS) $(LDLIBS) ws2_32.lib
 
 #
 # default make stuff used on most platforms

@@ -57,8 +57,8 @@ void TRACE_END(const char* fn);
 #define OUT() if (NULL != logfile) { fprintf(logfile,"%-16s:%-16s:%-8d:%-1s:%*s<%s\n",TimeMark(),__FILE__,mypid(),FIPS_TAG,((--TRACE_indent) < 40) ? TRACE_indent:40,"",__func__);fflush(logfile);}
 /* Out with integer return code */
 #define OUTRC(rc) if(NULL != logfile) { fprintf(logfile,"%-16s:%-16s:%-8d:%1s:%*s<%s (%d)\n" ,TimeMark(),__FILE__,mypid(),FIPS_TAG,((--TRACE_indent) < 40) ? TRACE_indent : 40, "", __func__,rc);fflush(logfile);}
-#define MARK(x,y) if(NULL != logfile) { fprintf(logfile,"%-16s:%-16s:%-8d:%-1s:%*s!%s %s %s\n",TimeMark(),__FILE__,mypid(),FIPS_TAG,(TRACE_indent < 40) ? TRACE_indent:40,"",__func__,x,y);fflush(logfile);}
-
+#define MARK(x,y) if(NULL != logfile) { fprintf(logfile,"%-16s:%-16s:%-8d:%-1s:%*s!%s %s %s\n",TimeMark(),__FILE__,mypid(),FIPS_TAG,(TRACE_indent < 40) ? TRACE_indent:40,"",__func__,(x),(y));fflush(logfile);}
+#define MARK2(a,b) {MARK(a,b); if (pcb->trace_callback) pcb->trace_callback((a), (b)); }
 /* Include this ONLY in one file which will contain the active tracing code */
 
 #if defined(TRACE_CODE)
@@ -190,7 +190,7 @@ void TRACE_START(const char *source, const char *application, const char *fn)
 {
   FILE *tmpfile = NULL;
   char *path = NULL;
-  int alen = 0;
+  size_t alen = 0;
   char *platform = OPSYS;
   /* Yes, thread safe, this is called during library load */
   static char trc_buffer[1024]; /* Path construction */
@@ -242,8 +242,8 @@ void TRACE_START(const char *source, const char *application, const char *fn)
     setbuf(logfile,NULL);
     TimeStamp(trc_buffer);
     if(NULL != logfile) {
-      fprintf(logfile,"%-16s:%-16s:%-8d,%1s:%s %s %s %s\n",TimeMark(),fn,mypid(),FIPS_TAG,application,source,platform,trc_buffer);
-      fprintf(logfile,"%-16s:%-16s:%-8d,%1s,CLOCKS_PER_SEC=%ld\n",TimeMark(),fn,mypid(),FIPS_TAG,(long)CLOCKS_PER_SEC);
+      fprintf(logfile,"%-16s:%-16s:%-8d:%1s:%s %s %s %s\n",TimeMark(),fn,mypid(),FIPS_TAG,application,source,platform,trc_buffer);
+      fprintf(logfile,"%-16s:%-16s:%-8d:%1s:CLOCKS_PER_SEC=%ld\n",TimeMark(),fn,mypid(),FIPS_TAG,(long)CLOCKS_PER_SEC);
       fflush(logfile);
     }  
   }

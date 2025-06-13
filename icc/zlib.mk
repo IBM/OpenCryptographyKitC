@@ -12,7 +12,7 @@ ZLIB	   = zlib-$(ZLIB_VER)
 
 # EX_SUFFIX (=_ex) is defined to build from source already extracted from tar file and
 # checked into source control. This option is used by iSeries/OS400 for Clearcase builds.
-ZLIB_DIR   = ../$(ZLIB)$(EX_SUFFIX)
+ZLIB_DIR   = $(ICC_ROOT)/$(ZLIB)$(EX_SUFFIX)
 
 ZLIB_SRC = $(ZLIB_DIR)/adler32.c  $(ZLIB_DIR)/compress.c $(ZLIB_DIR)/crc32.c \
 	$(ZLIB_DIR)/deflate.c $(ZLIB_DIR)/inffast.c $(ZLIB_DIR)/inflate.c \

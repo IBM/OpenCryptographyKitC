@@ -4,29 +4,13 @@
 # we used to patch OpenSSL to do this, but now everything resides
 # in the one shared lib this is easier maintenance
 #
-OSSL_XTRA_OBJ = aes_gcm$(OBJSUFX) \
-		aes_ccm$(OBJSUFX)
-
-#		icc_cmac$(OBJSUFX)
+OSSL_XTRA_OBJ = aes_gcm$(OBJSUFX) aes_ccm$(OBJSUFX)
 
 aes_gcm$(OBJSUFX): platforms/$(OPENSSL_LIBVER)/API/aes_gcm.c platforms/$(OPENSSL_LIBVER)/API/aes_gcm.h platforms/$(OPENSSL_LIBVER)/API/aes_ccm.h
-	$(CC) $(CFLAGS) -I./ -I$(OSSLINC_DIR) -Iplatforms/$(OPENSSL_LIBVER)/API platforms/$(OPENSSL_LIBVER)/API/aes_gcm.c $(OUT)$@
+	$(CC) $(CFLAGS) -I./ -Iplatforms/$(OPENSSL_LIBVER)/API -I$(OSSLINC_DIR) platforms/$(OPENSSL_LIBVER)/API/aes_gcm.c $(OUT)$@
 
 aes_ccm$(OBJSUFX): platforms/$(OPENSSL_LIBVER)/API/aes_ccm.c platforms/$(OPENSSL_LIBVER)/API/aes_ccm.h platforms/$(OPENSSL_LIBVER)/API/aes_gcm.h
-	$(CC) $(CFLAGS) -I./ -I$(OSSLINC_DIR) -Iplatforms/$(OPENSSL_LIBVER)/API platforms/$(OPENSSL_LIBVER)/API/aes_ccm.c $(OUT)$@
-
-#aes_gcm.c: platforms/$(OPENSSL_LIBVER)/API/aes_gcm.c
-#	$(CP) platforms/$(OPENSSL_LIBVER)/API/aes_gcm.c $@
-
-#aes_gcm.h: platforms/$(OPENSSL_LIBVER)/API/aes_gcm.h
-#	$(CP) platforms/$(OPENSSL_LIBVER)/API/aes_gcm.h $@
-
-#aes_ccm.c: platforms/$(OPENSSL_LIBVER)/API/aes_ccm.c
-#	$(CP) platforms/$(OPENSSL_LIBVER)/API/aes_ccm.c $@
-
-#aes_ccm.h: platforms/$(OPENSSL_LIBVER)/API/aes_ccm.h
-#	$(CP) platforms/$(OPENSSL_LIBVER)/API/aes_ccm.h $@
-
+	$(CC) $(CFLAGS) -I./ -Iplatforms/$(OPENSSL_LIBVER)/API -I$(OSSLINC_DIR) platforms/$(OPENSSL_LIBVER)/API/aes_ccm.c $(OUT)$@
 
 
 #

@@ -1,8 +1,8 @@
 /*************************************************************************
 // Copyright IBM Corp. 2023
 //
-// Licensed under the Apache License 2.0 (the "License").  You may not use
-// this file except in compliance with the License.  You can obtain a copy
+// Licensed under the Apache License 2.0 (the "License"). You may not use
+// this file except in compliance with the License. You can obtain a copy
 // in the file LICENSE in the source distribution.
 *************************************************************************/
 
@@ -206,7 +206,7 @@ static int KW(unsigned char *in, int inl, unsigned char *out, int *outl, unsigne
       }
       /* 2 to (2^54)-1 semiblocks */
       if((sizeof(n) > 4) && (sizeof(long) > 4)) {
-#if defined(WIN64)
+#if defined(_WIN64)
 	long long l  = 0x40000000000000 - 1;
 #else
 	long l = 0x40000000000000 - 1;
@@ -339,7 +339,7 @@ static int KU(unsigned char *in, int inl, unsigned char *out, int *outl, unsigne
   KWX T[2];
   KWX A;
   int bytes = 0;
-#if defined(WIN64)
+#if defined(_WIN64)
   long long l = 0;
 #else
   long l = 0;

@@ -1,8 +1,8 @@
 /*************************************************************************
 // Copyright IBM Corp. 2023
 //
-// Licensed under the Apache License 2.0 (the "License").  You may not use
-// this file except in compliance with the License.  You can obtain a copy
+// Licensed under the Apache License 2.0 (the "License"). You may not use
+// this file except in compliance with the License. You can obtain a copy
 // in the file LICENSE in the source distribution.
 *************************************************************************/
 
@@ -363,12 +363,14 @@ static TRNG_ERRORS TRNG_ESourceInit(E_SOURCE *es,int e_exp)
     es->cnt = 0;
     if(NULL != es->impl.avail) {
       if( 0 == (es->impl.avail())) {
+        MARK("TRNG_ESourceInit:avail=", "fail");
         debug(printf("TRNG_ESourceInit:avail=0\n"));
         rv = TRNG_INIT;
       }
     }
     if(TRNG_OK == rv) {
       if (1 != ht_Init(&(es->hti),e_exp)) {
+        MARK("ht_Init=", "fail");
         rv = TRNG_INIT;
       }
     }
@@ -384,8 +386,12 @@ static TRNG_ERRORS TRNG_ESourceInit(E_SOURCE *es,int e_exp)
     if (TRNG_OK == rv) {
       /* Run the optional per-type initialization */
       if (NULL != es->impl.init) {
-        rv = (es->impl.init)(es,NULL,0);
+        if (0 != (es->impl.init)(es,NULL,0)) {
+          MARK("es->impl.init=", "fail");
+          rv = TRNG_INIT;
+        }
       } else {
+        MARK("es->impl.init=", "NULL");
         rv = TRNG_INIT;
       }    
     }
@@ -420,8 +426,6 @@ TRNG_TYPE GetDefaultTrng()
             defined(__INTEL__) || \
             defined(__x86_64) || defined(__x86_64__) || defined(_M_AMD64)) && (!(defined(__SunOS) && !defined(__amd64)))) \
           || \
-          ( defined(__s390__) || defined(__MVS__)) \
-          || \
           ( defined(__ppc__) || defined(__powerpc__) || defined(_AIX)) \
         )
   if(!global_trng_type_attempted_upgrade) {
@@ -444,7 +448,10 @@ TRNG_TYPE GetDefaultTrng()
   global_trng_type_attempted_upgrade = 1;
   }
 
-#endif /*x86_64, z/architecture, power */
+#else /*x86_64, power */
+MARK("Not attempting to automatically upgrade to TRNG_HW on this platform", "");
+#endif /* platforms that won't try HW, such as z/architecture */
+
 #endif /*non-FIPS*/
   return global_trng_type;
 }

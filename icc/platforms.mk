@@ -31,7 +31,7 @@ DEFAULT_LD_CXX         = link
 DEFAULT_SLD            = $($(OPSYS)_LD)
 DEFAULT_AR             = $($(OPSYS)_LD)
 DEFAULT_debug_LDFLAGS  = 
-DEFAULT_LDFLAGS        = -DYNAMICBASE -NXCOMPAT -manifest -nologo -DEBUG -out:$@
+DEFAULT_LDFLAGS        = -DYNAMICBASE -NXCOMPAT -nologo -DEBUG -out:$@
 DEFAULT_LDXXFLAGS      = $($(OPSYS)_LDFLAGS)
 DEFAULT_SLDFLAGS       = -dll $($(OPSYS)_LDFLAGS) 
 DEFAULT_ARFLAGS        = -lib -nologo -out:$@ 
@@ -41,6 +41,7 @@ DEFAULT_LDLIBS         = -DYNAMICBASE -NXCOMPAT $($(OPSYS)_$(CONFIG)_LDLIBS)
 DEFAULT_OBJSUFX        = .obj
 DEFAULT_EXESUFX        = .exe
 DEFAULT_SHLPRFX        = 
+# SO_EXT in other words
 DEFAULT_SHLSUFX        = .dll
 DEFAULT_STLPRFX        = 
 DEFAULT_STLSUFX        = .lib
@@ -52,13 +53,20 @@ DEFAULT_LDFLAGS2       = $($(OPSYS)_LDFLAGS)
 DEFAULT_SLDFLAGS2      = $($(OPSYS)_SLDFLAGS)
 # mt is deprecated
 DEFAULT_MT	     = echo mt is deprecated ,
-#--- VisualC++ definitions on Win32
+
+# pre-build will set MUPPET but we can override it
+# use this when no FIPS module is available
+NO_MUPPET =
+# use this definition to link in old FIPS module
+UNIX_MUPPET         = $(OLD_ICC)/iccsdk/$(ICCLIB)
+
+DEFAULT_MUPPET         = $(OLD_ICC)/iccsdk/$(ICCLIB)
 
 # any flag can be defaulted this way to reduce copying overhead note = not :=
 # example default LDXXFLAGS to be LDFLAGS
 # override in OPSYS stanza
 
-#set up defaults for all windows - specific stanzas will redfine as required
+#set up defaults for all windows - specific stanzas will redefined as required
 $(OPSYS)_CC = $(DEFAULT_CC)
 $(OPSYS)_CXX = $(DEFAULT_CXX)
 $(OPSYS)_debug_CFLAGS   = $(DEFAULT_debug_CFLAGS)
@@ -90,6 +98,7 @@ $(OPSYS)_CFLAGS2        = $(DEFAULT_CFLAGS2)
 $(OPSYS)_LDFLAGS2       = $(DEFAULT_LDFLAGS2)
 $(OPSYS)_SLDFLAGS2      = $(DEFAULT_SLDFLAGS2)
 $(OPSYS)_MT	     = $(DEFAULT_MT)
+$(OPSYS)_MUPPET         = $(DEFAULT_MUPPET)
 
 #--- VisualC++ definitions on Win32
 # cant use symlinks so define absolute location of ICC ie parent of package directory
@@ -100,13 +109,13 @@ WIN32_CXX             = cl -TP
 WIN32_debug_CFLAGS   = -MDd -Zi -D DEBUG -RTCu
 # Optimization off generates faster starting code ...
 WIN32_release_CFLAGS = -MD -Zi
-WIN32_CFLAGS         = -nologo $(WIN32_$(CONFIG)_CFLAGS) -W3 -GF  -GS -D WIN32 -D _MBCS -D_CRT_SECURE_NO_WARNINGS  -c 
+WIN32_CFLAGS         = -c -nologo $(WIN32_$(CONFIG)_CFLAGS) -W3 -GF -GS -D WIN32 -D_MBCS -D_CRT_SECURE_NO_WARNINGS
 WIN32_LD             = link
 WIN32_LD_CXX         = link
 WIN32_SLD            = $(WIN32_LD)
 WIN32_AR             = $(WIN32_LD)
 WIN32_debug_LDFLAGS  = 
-WIN32_LDFLAGS        = -DYNAMICBASE -NXCOMPAT -manifest -nologo -DEBUG -out:$@
+WIN32_LDFLAGS = -DYNAMICBASE -NXCOMPAT -nologo -DEBUG -out:$@
 WIN32_SLDFLAGS       = -dll  $(WIN32_LDFLAGS) 
 WIN32_ARFLAGS        = -lib -nologo -out:$@ 
 WIN32_release_LDLIBS = ws2_32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib
@@ -124,7 +133,6 @@ WIN32_OUT           = -Fo
 WIN32_CFLAGS2        = $(WIN32_CFLAGS)
 WIN32_LDFLAGS2       = $(WIN32_LDFLAGS)
 WIN32_SLDFLAGS2      = $(WIN32_SLDFLAGS)
-WIN32_MT	     = mt
 #--- VisualC++ definitions on Win32
 
 #--- VisualC++ definitions on Win64-AMD
@@ -146,10 +154,10 @@ WIN64_AMD_LD_CXX         = link
 WIN64_AMD_SLD            = $(WIN64_AMD_LD)
 WIN64_AMD_AR             = $(WIN64_AMD_LD)
 WIN64_AMD_debug_LDFLAGS  = -debug
-WIN64_AMD_LDFLAGS        = -DYNAMICBASE -NXCOMPAT -DEBUG -manifest -nologo $(WIN64_AMD_$(CONFIG)_LDFLAGS) -out:$@
+WIN64_AMD_LDFLAGS        = -DYNAMICBASE -NXCOMPAT -DEBUG -nologo $(WIN64_AMD_$(CONFIG)_LDFLAGS) -out:$@
 WIN64_AMD_SLDFLAGS       = -dll $(WIN64_AMD_LDFLAGS)
 WIN64_AMD_ARFLAGS        = -lib -nologo -out:$@
-WIN64_AMD_release_LDLIBS = gdi32.lib advapi32.lib user32.lib
+WIN64_AMD_release_LDLIBS = ws2_32.lib gdi32.lib advapi32.lib user32.lib
 WIN64_AMD_debug_LDLIBS   = $(WIN64_AMD_release_LDLIBS)
 WIN64_AMD_LDLIBS         = -DYNAMICBASE -NXCOMPAT $(WIN64_AMD_$(CONFIG)_LDLIBS)
 WIN64_AMD_OBJSUFX        = .obj
@@ -174,15 +182,15 @@ WIN32_VS2013_CC             = cl
 WIN32_VS2013_CXX             = cl -TP
 WIN32_VS2013_debug_CFLAGS   = -MDd -Zi -D DEBUG -RTCu
 WIN32_VS2013_release_CFLAGS = -MD -Zi
-WIN32_VS2013_CFLAGS         = -nologo $(WIN32_$(CONFIG)_CFLAGS) -W3 -GF -GS -D WIN32 -D _MBCS -D_CRT_SECURE_NO_WARNINGS -c 
+WIN32_VS2013_CFLAGS         = -c -nologo $(WIN32_$(CONFIG)_CFLAGS) -W3 -GF -GS -D WIN32 -D _MBCS -D_CRT_SECURE_NO_WARNINGS
 WIN32_VS2013_CXXFLAGS       = $(WIN32_VS2013_CFLAGS)
 WIN32_VS2013_LD             = link
 WIN32_VS2013_LD_CXX         = link
 WIN32_VS2013_SLD            = $(WIN32_LD)
 WIN32_VS2013_AR             = $(WIN32_LD)
 WIN32_VS2013_debug_LDFLAGS  = 
-WIN32_VS2013_LDFLAGS        = -DYNAMICBASE -NXCOMPAT -manifest -nologo -DEBUG -out:$@
-WIN32_VS2013_SLDFLAGS       = -dll  $(WIN32_LDFLAGS) 
+WIN32_VS2013_LDFLAGS        = -DYNAMICBASE -NXCOMPAT -nologo -DEBUG -out:$@
+WIN32_VS2013_SLDFLAGS       = -dll $(WIN32_VS2013_LDFLAGS)
 WIN32_VS2013_ARFLAGS        = -lib -nologo -out:$@ 
 WIN32_VS2013_release_LDLIBS = ws2_32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib
 WIN32_VS2013_debug_LDLIBS = ws2_32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib
@@ -196,10 +204,9 @@ WIN32_VS2013_STLSUFX        = .lib
 WIN32_VS2013_debug_STRIP   = touch
 WIN32_VS2013_release_STRIP = touch
 WIN32_VS2013_OUT           = -Fo
-WIN32_VS2013_CFLAGS2        = $(WIN32_CFLAGS)
-WIN32_VS2013_LDFLAGS2       = $(WIN32_LDFLAGS)
+WIN32_VS2013_CFLAGS2        = $(WIN32_VS2013_CFLAGS)
+WIN32_VS2013_LDFLAGS2       = $(WIN32_VS2013_LDFLAGS)
 WIN32_VS2013_SLDFLAGS2      = $(WIN32_SLDFLAGS)
-WIN32_VS2013_MT	     = mt
 #--- VisualC++ definitions on Win32 Visual Studio 2013
 
 # --- VisualC++ definitions on Win32 Visual Studio 2019/22
@@ -231,10 +238,10 @@ WIN64_AMD_VS2013_LD_CXX         = link
 WIN64_AMD_VS2013_SLD            = $(WIN64_AMD_LD)
 WIN64_AMD_VS2013_AR             = $(WIN64_AMD_LD)
 WIN64_AMD_VS2013_debug_LDFLAGS  = -debug
-WIN64_AMD_VS2013_LDFLAGS        = -DYNAMICBASE -NXCOMPAT -DEBUG -manifest -nologo $(WIN64_AMD_$(CONFIG)_LDFLAGS) -out:$@
+WIN64_AMD_VS2013_LDFLAGS        = -DYNAMICBASE -NXCOMPAT -DEBUG -nologo $(WIN64_AMD_$(CONFIG)_LDFLAGS) -out:$@
 WIN64_AMD_VS2013_SLDFLAGS       = -dll $(WIN64_AMD_LDFLAGS)
 WIN64_AMD_VS2013_ARFLAGS        = -lib -nologo -out:$@
-WIN64_AMD_VS2013_release_LDLIBS = gdi32.lib advapi32.lib user32.lib
+WIN64_AMD_VS2013_release_LDLIBS = ws2_32.lib gdi32.lib advapi32.lib user32.lib
 WIN64_AMD_VS2013_debug_LDLIBS   = $(WIN64_AMD_release_LDLIBS)
 WIN64_AMD_VS2013_LDLIBS         = -DYNAMICBASE -NXCOMPAT $(WIN64_AMD_$(CONFIG)_LDLIBS)
 WIN64_AMD_VS2013_OBJSUFX        = .obj
@@ -249,7 +256,6 @@ WIN64_AMD_VS2013_OUT            = $(WIN32_OUT)
 WIN64_AMD_VS2013_CFLAGS2        = $(WIN64_AMD_CFLAGS)
 WIN64_AMD_VS2013_LDFLAGS2       = $(WIN64_AMD_LDFLAGS)
 WIN64_AMD_VS2013_SLDFLAGS2      = $(WIN64_AMD_SLDFLAGS)
-#WIN64_AMD_VS2013_MT             = mt
 
 WIN64_VS2022_RM             = rm -f
 WIN64_VS2022_MKDIR          = [ -d $@ ] || mkdir -p
@@ -270,7 +276,7 @@ WIN64_VS2022_LD_CXX         = link
 WIN64_VS2022_SLD            = $(WIN64_VS2022_LD)
 WIN64_VS2022_AR             = $(WIN64_VS2022_LD)
 WIN64_VS2022_debug_LDFLAGS  = -debug
-WIN64_VS2022_LDFLAGS        = -DYNAMICBASE -NXCOMPAT -DEBUG -manifest -nologo $(WIN64_VS2022_$(CONFIG)_LDFLAGS) -out:$@
+WIN64_VS2022_LDFLAGS        = -DYNAMICBASE -NXCOMPAT -DEBUG -nologo $(WIN64_VS2022_$(CONFIG)_LDFLAGS) -out:$@
 WIN64_VS2022_SLDFLAGS       = -dll $(WIN64_VS2022_LDFLAGS)
 WIN64_VS2022_ARFLAGS        = -lib -nologo -out:$@
 WIN64_VS2022_release_LDLIBS = gdi32.lib advapi32.lib user32.lib ws2_32.lib
@@ -288,7 +294,7 @@ WIN64_VS2022_OUT            = $(WIN32_OUT)
 WIN64_VS2022_CFLAGS2        = $(WIN64_VS2022_CFLAGS)
 WIN64_VS2022_LDFLAGS2       = $(WIN64_VS2022_LDFLAGS)
 WIN64_VS2022_SLDFLAGS2      = $(WIN64_VS2022_SLDFLAGS)
-#WIN64_VS2022_MT             = mt
+WIN64_VS2022_MUPPET         = $(OLD_ICC)/iccsdk/$(ICCLIB)
 
 # Convenience definition for Linuxi
 #
@@ -301,15 +307,30 @@ LINUX_release_CFLAGS = -g1 -O3
 
 LINUX_asan_LDFLAGS	 = -fsanitize=address
 
-LINUX32_CFLAGS = -m32 $(LINUX_$(CONFIG)_CFLAGS) -D_REENTRANT -fno-strict-aliasing -fno-exceptions -fPIC -Wall -c
-LINUX32_CXXFLAGS = -m32 $(LINUX_$(CONFIG)_CFLAGS) -D_REENTRANT -fno-strict-aliasing -fPIC -Wall -c
-LINUX32_LDFLAGS = -m32 $(LINUX_$(CONFIG)_LDFLAGS) $(LINUX_OUT) $@
-LINUX32_SLDFLAGS = -m32 $(LINUX_$(CONFIG)_LDFLAGS) -shared -Wl,-soname,$@  -Wl,--rpath,\$$ORIGIN $(LINUX_OUT) $@
+# std=gnu99 will allow declaring variables in the for loop header on phelix (gcc 4.1.2/2006)
+LINUX32_CFLAGS = -std=gnu99 -m32 $(LINUX_$(CONFIG)_CFLAGS) -D_REENTRANT -fno-strict-aliasing -fno-exceptions -fPIC -Wall -c
+LINUX32_CXXFLAGS = -std=gnu99 -m32 $(LINUX_$(CONFIG)_CFLAGS) -D_REENTRANT -fno-strict-aliasing -fPIC -Wall -c
+LINUX32_LDFLAGS = -std=gnu99 -m32 $(LINUX_$(CONFIG)_LDFLAGS) $(LINUX_OUT) $@
+LINUX32_SLDFLAGS = -std=gnu99 -m32 $(LINUX_$(CONFIG)_LDFLAGS) -shared -Wl,-soname,$@  -Wl,--rpath,\$$ORIGIN $(LINUX_OUT) $@
 
-LINUX64_CFLAGS = -m64 $(LINUX_$(CONFIG)_CFLAGS) -D_REENTRANT -fno-strict-aliasing -fno-exceptions -fPIC -Wall -c
-LINUX64_CXXFLAGS = -m64 $(LINUX_$(CONFIG)_CFLAGS) -D_REENTRANT -fno-strict-aliasing -fPIC -Wall -c
-LINUX64_LDFLAGS = -m64 $(LINUX_$(CONFIG)_LDFLAGS) $(LINUX_OUT) $@
-LINUX64_SLDFLAGS = -m64 $(LINUX_$(CONFIG)_LDFLAGS) -shared -Wl,-soname,$@ -Wl,--rpath,\$$ORIGIN $(LINUX_OUT) $@
+# This one makes too many "error" matches in log file searches
+#LINUX64_CFLAGS += -Werror=implicit-function-declaration
+ifeq (OFFICIAL, $(BUILD))
+LINUX64_CFLAGS = -std=gnu99 -m64 $(LINUX_$(CONFIG)_CFLAGS) -D_REENTRANT -fno-strict-aliasing -fno-exceptions -fPIC -Wall -c
+LINUX64_CXXFLAGS = -std=gnu99 -m64 $(LINUX_$(CONFIG)_CFLAGS) -D_REENTRANT -fno-strict-aliasing -fPIC -Wall -c
+else
+LINUX64_CFLAGS = -std=gnu99 -m64 $(LINUX_$(CONFIG)_CFLAGS) -D_REENTRANT -fno-strict-aliasing -fno-exceptions -fPIC -Wall -c \
+                 -Werror=incompatible-pointer-types \
+                 -Werror=implicit-int \
+                 -Werror=implicit-function-declaration \
+                 -Werror=return-type \
+                 -Werror=int-conversion   
+LINUX64_CXXFLAGS = -std=gnu99 -m64 $(LINUX_$(CONFIG)_CFLAGS) -D_REENTRANT -fno-strict-aliasing -fPIC -Wall -c \
+                   -Werror=return-type
+endif
+
+LINUX64_LDFLAGS = -std=gnu99 -m64 $(LINUX_$(CONFIG)_LDFLAGS) $(LINUX_OUT) $@
+LINUX64_SLDFLAGS = -std=gnu99 -m64 $(LINUX_$(CONFIG)_LDFLAGS) -shared -Wl,-soname,$@ -Wl,--rpath,\$$ORIGIN $(LINUX_OUT) $@
 
 #--- GCC definitions on Linux IA32
 LINUX_RM             = rm -f
@@ -349,7 +370,6 @@ LINUX_SLDFLAGS2      = $(LINUX32_SLDFLAGS)  -z noexecstack
 LINUX_MT             = true
 # HP/UX Specific
 LINUX_ICCLIB_LNK     =
-
 
 
 #--- GCC definitions on Linux IA32/IA64, Directly linked to OpenSSL
@@ -406,10 +426,10 @@ IA64_LINUX_CP             = cp -f
 IA64_LINUX_DEBUGGER       = ddd
 IA64_LINUX_CC             = $(LINUX_CC)
 IA64_LINUX_CXX            = $(LINUX_CXX)
-IA64_LINUX_CFLAGS         = $(LINUX_$(CONFIG)_CFLAGS) -D_REENTRANT -fno-strict-aliasing -fno-exceptions -fPIC -Wall  -c
+IA64_LINUX_CFLAGS         = $(filter-out -m64, $(LINUX64_CFLAGS))
 IA64_LINUX_debug_CFLAGS   =
 IA64_LINUX_release_CFLAGS =
-IA64_LINUX_CXXFLAGS       = $(LINUX_$(CONFIG)_CFLAGS) -D_REENTRANT -fno-strict-aliasing -fPIC -Wall  -c
+IA64_LINUX_CXXFLAGS       = $(filter-out -m64, $(LINUX64_CXXFLAGS))
 IA64_LINUX_LD             = $(LINUX_CC)
 IA64_LINUX_LD_CXX         = $(LINUX_CXX)
 IA64_LINUX_SLD            = $(LINUX_LD)
@@ -431,6 +451,7 @@ IA64_LINUX_CFLAGS2        = $(IA64_LINUX_CFLAGS)
 IA64_LINUX_LDFLAGS2       = $(IA64_LINUX_LDFLAGS)
 IA64_LINUX_SLDFLAGS2      = $(IA64_LINUX_SLDFLAGS)  -z noexecstack
 IA64_LINUX_MT             = true
+IA64_LINUX_MUPPET         =
 
 #--- GCC definitions on Linux ARM
 # Note X compile arm x-compiler installed and
@@ -446,10 +467,10 @@ ARM_LINUX_DEBUGGER       = ddd
 ARM_LINUX_CC             = $(LINUX_CC)
 ARM_LINUX_CXX            = $(LINUX_CXX)
 ARM_LINUX_CXX            = $(LINUX_CXX)
-ARM_LINUX_CFLAGS         = $(LINUX_$(CONFIG)_CFLAGS) -D_REENTRANT -fno-strict-aliasing -fno-exceptions -fPIC -Wall -c
-ARM_LINUX_debug_CFLAGS   =
-ARM_LINUX_release_CFLAGS =
-ARM_LINUX_CXXFLAGS       = $(LINUX_$(CONFIG)_CFLAGS) -D_REENTRANT -fno-strict-aliasing -fPIC -Wall -c
+ARM_LINUX_debug_CFLAGS   = $(LINUX_debug_CFLAGS)
+ARM_LINUX_release_CFLAGS = $(LINUX_release_CFLAGS)
+ARM_LINUX_CFLAGS         = $(filter-out -m64, $(LINUX64_CFLAGS))
+ARM_LINUX_CXXFLAGS       = $(filter-out -m64, $(LINUX64_CXXFLAGS))
 ARM_LINUX_LD             = $(ARM_LINUX_CC)
 ARM_LINUX_LD_CXX         = $(ARM_LINUX_CXX)
 ARM_LINUX_SLD            = $(ARM_LINUX_LD)
@@ -481,10 +502,8 @@ ARM64_LINUX_CP             = cp -f
 ARM64_LINUX_DEBUGGER       = ddd
 ARM64_LINUX_CC             = $(LINUX_CC)
 ARM64_LINUX_CXX            = $(LINUX_CXX)
-ARM64_LINUX_CFLAGS         = -D_REENTRANT -fno-strict-aliasing -fno-exceptions -fPIC -Wall  -c
-ARM64_LINUX_debug_CFLAGS   =
-ARM64_LINUX_release_CFLAGS =
-ARM64_LINUX_CXXFLAGS       = -D_REENTRANT -fno-strict-aliasing -fPIC -Wall -c
+ARM64_LINUX_CFLAGS         = $(filter-out -m64, $(LINUX64_CFLAGS))
+ARM64_LINUX_CXXFLAGS       = $(filter-out -m64, $(LINUX64_CXXFLAGS))
 ARM64_LINUX_LD             = $(ARM64_LINUX_CC)
 ARM64_LINUX_LD_CXX         = $(ARM64_LINUX_CXX)
 ARM64_LINUX_SLD            = $(ARM64_LINUX_LD)
@@ -508,18 +527,11 @@ ARM64_LINUX_SLDFLAGS2      = $(ARM64_LINUX_SLDFLAGS)
 ARM64_LINUX_MT             = true
 
 #--- GCC definitions on Linux AMD64
-AMD64_LINUX_RM             = rm -f
-AMD64_LINUX_MKDIR          = [ -d $@ ] || mkdir -p
-AMD64_LINUX_CP             = cp -f
-AMD64_LINUX_DEBUGGER       = ddd
 AMD64_LINUX_CC             = $(LINUX_CC)
 AMD64_LINUX_CXX             = $(LINUX_CXX)
-# -fno-strict-aliasingw orks around GCC 4.x bugs which cause the fork test to crash
-AMD64_LINUX_CFLAGS         = -fno-strict-aliasing $(LINUX64_CFLAGS)
+AMD64_LINUX_CFLAGS         = $(LINUX64_CFLAGS)
 AMD64_LINUX_debug_CFLAGS   =
 AMD64_LINUX_release_CFLAGS =
-# Enable to get gcc working as a static analysis tool
-#AMD64_LINUX_CFLAGS         = -fno-strict-aliasing  $(LINUX64_CFLAGS) -fanalyzer
 AMD64_LINUX_CXXFLAGS       = $(LINUX64_CXXFLAGS)
 AMD64_LINUX_LD             = $(LINUX_LD)
 AMD64_LINUX_LD_CXX         = $(LINUX_CXX)
@@ -543,6 +555,7 @@ AMD64_LINUX_CFLAGS2        = $(AMD64_LINUX_CFLAGS)
 AMD64_LINUX_LDFLAGS2       = $(AMD64_LINUX_LDFLAGS)
 AMD64_LINUX_SLDFLAGS2      = $(AMD64_LINUX_SLDFLAGS)
 AMD64_LINUX_MT             = true
+AMD64_LINUX_MUPPET         = $(UNIX_MUPPET)
 
 #--- GCC definitions on Linux PPC
 PPC_LINUX_RM             = rm -f
@@ -610,6 +623,7 @@ PPC64_LINUX_CFLAGS2        = $(PPC64_LINUX_CFLAGS)
 PPC64_LINUX_LDFLAGS2       = $(PPC64_LINUX_LDFLAGS)
 PPC64_LINUX_SLDFLAGS2      = $(PPC64_LINUX_SLDFLAGS)
 PPC64_LINUX_MT             = true
+PPC64_LINUX_MUPPET         = $(UNIX_MUPPET)
 
 ##--- GCC definitions on Linux PPC64 Little-Endian
 PPC64LE_LINUX_RM             = rm -f
@@ -644,6 +658,7 @@ PPC64LE_LINUX_CFLAGS2        = $(PPC64LE_LINUX_CFLAGS)
 PPC64LE_LINUX_LDFLAGS2       = $(PPC64LE_LINUX_LDFLAGS)
 PPC64LE_LINUX_SLDFLAGS2      = $(PPC64LE_LINUX_SLDFLAGS)
 PPC64LE_LINUX_MT             = true
+PPC64LE_LINUX_MUPPET         = $(UNIX_MUPPET)
 
 # Special definitions for OS/X 
 # This changes every release and is a real pain to deal with
@@ -651,8 +666,9 @@ PPC64LE_LINUX_MT             = true
 
 DARWIN_LDFLAGS          = -isysroot /Developer/SDKs/MacOSX10.6.sdk -o $@
 DARWIN_SLDFLAGS         = -dynamiclib -dylib -Wl,-syslibroot /Developer/SDKs/MacOSX10.6.sdk -install_name ./$@ -headerpad_max_install_names -o $@
-OSX_LDFLAGS             = $($(OSVER)_LDFLAGS)
-OSX_SLDFLAGS            = $($(OSVER)_SLDFLAGS)
+# OSVER is never defined - this must be a typo
+#OSX_LDFLAGS             = $($(OSVER)_LDFLAGS)
+#OSX_SLDFLAGS            = $($(OSVER)_SLDFLAGS)
 
 
 
@@ -809,7 +825,7 @@ OSX_FAT4_MT		= true
 
 #DARWIN_LDFLAGS          = -isysroot /Developer/SDKs/MacOSX10.6.sdk -o $@
 #DARWIN_SLDFLAGS         = -dynamiclib -dylib -Wl,-syslibroot /Developer/SDKs/MacOSX10.6.sdk -install_name ./$@ -headerpad_max_install_names -o $@
-#--- GCC definitions for OSX x86_64
+#--- GCC definitions for OSX x86_64  part build for GSKitV9
 #--- NOT The same as the builds above, this is 1/4 of the platform
 OSXV9_ARCH         = -arch x86_64
 OSXV9_RM           = $(OSX_RM)
@@ -946,16 +962,17 @@ S390X_LINUX_CFLAGS2        = $(S390X_LINUX_CFLAGS)
 S390X_LINUX_LDFLAGS2       = $(S390X_LINUX_LDFLAGS)
 S390X_LINUX_SLDFLAGS2      = $(S390X_LINUX_SLDFLAGS)
 S390X_LINUX_MT		   = true
+S390X_LINUX_MUPPET         = $(UNIX_MUPPET)
 
 
 #--- c89 definitions on z/OS 64 bit
 ZOS_DEBUGGER       = 
 # cc (not c89 anymore from z/OS 1.6 on) # could be cc
 ZOS_CC             = c99
-# cxx wants .C not .cpp, ZOS_.mk is using xlc++ so copy that
+
+# xlc++ has trouble with envelope.c. We use a cpp compiler for testing. It doesn't like the openssl headers.
 #ZOS_CXX            = xlc++
-# Actually xlc++ has trouble with envelope.c, so we can compile c++ with the "-+" flag
-ZOS_CXX            = cxx -+
+ZOS_CXX            = c99 -+
 
 ZOS_debug_CFLAGS   = -g
 ZOS_release_CFLAGS = -O3 -Wc,strict,hgpr
@@ -984,6 +1001,7 @@ ZOS_CFLAGS2        = $(ZOS_CFLAGS)
 ZOS_LDFLAGS2       = $(ZOS_LDFLAGS)
 ZOS_SLDFLAGS2      = $(ZOS_SLDFLAGS)
 ZOS_MT  	   = true
+ZOS_MUPPET         = $(UNIX_MUPPET)
 
 
 #--- c89 definitions on z/OS 64 bit
@@ -1019,7 +1037,9 @@ ZOSA_CFLAGS2        = $(ZOSA_CFLAGS)
 ZOSA_LDFLAGS2       = $(ZOSA_LDFLAGS)
 ZOSA_SLDFLAGS2      = $(ZOSA_SLDFLAGS)
 ZOSA_MT  	   = true
-
+ZOSA_MUPPET         = $(UNIX_MUPPET)
+# Somehow invoking ksh primes the terminal to expect ascii output from icctest and automatically converts it.
+ZOSA_ICC_RUN_SETUP = ksh --version;
 
 #--- c89 definitions on z/OS 31 bit
 ZOS31_DEBUGGER       = 
@@ -1086,6 +1106,7 @@ ZOSA31_CFLAGS2        = $(ZOS31_CFLAGS)
 ZOSA31_LDFLAGS2       = $(ZOS31_LDFLAGS)
 ZOSA31_SLDFLAGS2      = $(ZOS31_SLDFLAGS)
 ZOSA31_MT  	   = true
+ZOSA31_ICC_RUN_SETUP = ksh --version;
 
 #--- end of c89 definitions on z/OS
 
@@ -1095,14 +1116,14 @@ AIX_RM             = rm -f
 AIX_MKDIR          = [ -d $@ ] || mkdir -p
 AIX_CP             = cp -f
 AIX_DEBUGGER       = idebug
-AIX_CC             = cc_r
-AIX_CXX            = xlC_r
+AIX_CC             = xlc_r
+AIX_CXX            = xlc++_r
 AIX_debug_CFLAGS   = -g -qdbxextra -qthreaded
 AIX_release_CFLAGS = -O -qmaxmem=16384 -qtbtable=full -qthreaded
 AIX_CFLAGS         = $(AIX_$(CONFIG)_CFLAGS) -c
 AIX_CXXFLAGS       = $(AIX_CFLAGS)
-AIX_LD             = cc_r
-AIX_SLD            = cc_r
+AIX_LD             = xlc_r
+AIX_SLD            = xlc_r
 AIX_LD_CXX         = $(AIX_CXX)
 AIX_AR             = ar
 AIX_LDFLAGS        = $(AIX_OUT) $@
@@ -1123,19 +1144,20 @@ AIX_LDFLAGS2       = $(AIX_LDFLAGS)
 AIX_SLDFLAGS2      = $(AIX_SLDFLAGS)
 AIX_MT		   = true
 AIX_ICCLIB_LNK     =  -binitfini:iccSLInit:iccSLFini:0
+
 #--- VisualAge definitions on AIX
 AIX64_RM             = rm -f
 AIX64_MKDIR          = [ -d $@ ] || mkdir -p
 AIX64_CP             = cp -f
 AIX64_DEBUGGER       = idebug
-AIX64_CC             = cc_r
-AIX64_CXX            = xlC_r
+AIX64_CC             = $(AIX_CC)
+AIX64_CXX            = $(AIX_CXX)
 AIX64_debug_CFLAGS   = -g -q64 -qdbxextra -qthreaded
 AIX64_release_CFLAGS = -O -q64 -qmaxmem=16384 -qtbtable=full -qthreaded
 AIX64_CFLAGS         = $(AIX64_$(CONFIG)_CFLAGS)  -c 
 AIX64_CXXFLAGS       = -q64 -c
-AIX64_LD             = cc_r
-AIX64_SLD            = cc_r
+AIX64_LD             = $(AIX_LD)
+AIX64_SLD            = $(AIX_SLD)
 AIX64_LD_CXX         = $(AIX64_CXX)
 AIX64_AR             = ar
 AIX64_LDFLAGS        = -q64 $(AIX64_OUT) $@
@@ -1156,20 +1178,21 @@ AIX64_LDFLAGS2       = $(AIX64_LDFLAGS)
 AIX64_SLDFLAGS2      = $(AIX64_SLDFLAGS)
 AIX64_MT	     = true
 AIX64_ICCLIB_LNK     = -binitfini:iccSLInit:iccSLFini:0
+AIX64_MUPPET         = $(UNIX_MUPPET)
 
 #--- Power hypervisor
 POWERH_RM             = rm -f
 POWERH_MKDIR          = [ -d $@ ] || mkdir -p
 POWERH_CP             = cp -f
 POWERH_DEBUGGER       = idebug
-POWERH_CC             = cc_r
-POWERH_CXX            = xlC_r
+POWERH_CC             = xlc_r
+POWERH_CXX            = xlc_r++
 POWERH_release_CFLAGS = -bstatic -O -qlanglvl=offsetnonpod:nonewexcp:noansifor:nognu_warning:noimplicitint:zeroextarray -qnortti -qnostdinc -qnolib -qlist -qasm -qsource -qlistopt -qarch=pwr6 -qenum=8 -q64 -qnoeh -qdebug=npage0 -qxflag=kernel_node -qdebug=NFPCONC -qidirfirst -qhalt=e 
 POWERH_debug_CFLAGS   = $(POWERH_release_CFLAGS)
 POWERH_CFLAGS         = $(POWERH_$(CONFIG)_CFLAGS)  -c
 POWERH_CXXFLAGS       = -c
-POWERH_LD             = cc_r
-POWERH_SLD            = cc_r
+POWERH_LD             = xlc_r
+POWERH_SLD            = xlc_r
 POWERH_LD_CXX         = $(POWERH_CXX)
 POWERH_AR             = ar
 POWERH_LDFLAGS        = -q64 $(POWERH_OUT) $@
@@ -1190,6 +1213,15 @@ POWERH_LDFLAGS2       = $(POWERH_LDFLAGS)
 POWERH_SLDFLAGS2      = $(POWERH_SLDFLAGS)
 POWERH_MT	     = true
 POWERH_ICCLIB_LNK     = -binitfini:iccSLInit:iccSLFini:0
+
+# default all platforms to current setting /usr/bin/sh
+# := prevents assignment loop
+$(OPSYS)_SHELL:=$(SHELL)
+# SUN's sh is not handling 'if' properly so use ksh
+SUN_SHELL=/usr/bin/ksh
+SUN_AMD64_SHELL=$(SUN_SHELL)
+SUN64_SHELL=$(SUN_SHELL)
+SUN_X86_SHELL=$(SUN_SHELL)
 
 #--- Forte definitions on SUN
 SUN_RM             = rm -f
@@ -1341,7 +1373,7 @@ HPUX_DEBUGGER       = dde
 HPUX_debug_CFLAGS   = -g +O2 +Osize +Oprocelim
 # Keep the opt level low, the OpenSSL build has test failures otherwise
 HPUX_release_CFLAGS = +O3 +Osize +Oprocelim
-HPUX_CFLAGS         =  $(HPUX_$(CONFIG)_CFLAGS) -Ae  +ESlit -D_REENTRANT -D_POSIX_C_SOURCE=199506L  -mt +Z -c
+HPUX_CFLAGS         =  $(HPUX_$(CONFIG)_CFLAGS) -AC99 -Ae +ESlit -D_REENTRANT -D_POSIX_C_SOURCE=199506L -mt +Z -c
 HPUX_CXXFLAGS       =  $(HPUX_CFLAGS)
 HPUX_LD             = $(HPUX_CC)
 HPUX_LD_CXX         = $(HPUX_CXX)
@@ -1376,7 +1408,7 @@ HPUX64_DEBUGGER       = dde
 HPUX64_debug_CFLAGS   = -g
 # DO NOT up the opt level, it causes subtle problems, like not exiting 
 HPUX64_release_CFLAGS = +O3 +Osize +Oprocelim 
-HPUX64_CFLAGS         = $(HPUX64_$(CONFIG)_CFLAGS) +Optrs_strongly_typed +Olibcalls -Ae +ESlit -DB_ENDIAN -DMD32_XARRAY -D_POSIX_C_SOURCE=199506L -D_REENTRANT -mt +Z -c  
+HPUX64_CFLAGS         = $(HPUX64_$(CONFIG)_CFLAGS) -AC99 +Optrs_strongly_typed +Olibcalls -Ae +ESlit -DB_ENDIAN -DMD32_XARRAY -D_POSIX_C_SOURCE=199506L -D_REENTRANT -mt +Z -c
 HPUX64_CXXFLAGS       = $(HPUX64_CFLAGS)
 HPUX64_LD             = $(HPUX64_CC)
 HPUX64_LD_CXX	      = $(HPUX64_CXX)
@@ -1413,7 +1445,7 @@ IA64_HPUX_CXX            = aCC
 IA64_HPUX_DEBUGGER       = dde
 IA64_HPUX_debug_CFLAGS   = -g -DDEBUG
 IA64_HPUX_release_CFLAGS = -O2
-IA64_HPUX_CFLAGS         = $(IA64_HPUX_$(CONFIG)_CFLAGS) -D_POSIX_C_SOURCE=199506L -mt -ext -Ae +O2 +z  -c
+IA64_HPUX_CFLAGS         = $(IA64_HPUX_$(CONFIG)_CFLAGS) -AC99 -D_POSIX_C_SOURCE=199506L -mt -ext -Ae +O2 +z -c
 IA64_HPUX_CXXFLAGS       = $(IA64_HPUX_CFLAGS)
 IA64_HPUX_LD             = $(IA64_HPUX_CC)
 IA64_HPUX_LD_CXX         = $(IA64_HPUX_CXX)
@@ -1451,7 +1483,7 @@ IA64_HPUX64_CXX             = aCC +DD64
 IA64_HPUX64_DEBUGGER        = dde
 IA64_HPUX64_debug_CFLAGS    = -g -DDEBUG
 IA64_HPUX64_release_CFLAGS  = -O3 
-IA64_HPUX64_CFLAGS          = -D_REENTRANT -D_POSIX_C_SOURCE=199506L  -mt -Ae $(IA64_HPUX64_$(CONFIG)_CFLAGS) +z  -c
+IA64_HPUX64_CFLAGS          = $(IA64_HPUX64_$(CONFIG)_CFLAGS) -AC99 -D_REENTRANT -D_POSIX_C_SOURCE=199506L -mt -Ae +z -c
 IA64_HPUX64_CXXFLAGS        = $(IA64_HPUX64_CFLAGS)
 IA64_HPUX64_LD              = $(IA64_HPUX64_CC)
 IA64_HPUX64_LD_CXX          = $(IA64_HPUX64_CXX)
@@ -1512,7 +1544,7 @@ OS400_LD             	= icc
 OS400_LD_CXX         	= icc 
 OS400_SLD            	= $(OS400_SETUP_ICC); $(OS400_$(CONFIG)_LD)
 OS400_AR             	= ar -v -c -r
-S400_LDFLAGS      	= -v $(OS400_OUT) $@ -qTGTRLS=V5R3M0 -qENTMOD=$(OS400_ICCSDK_OUTPUTDIR)/QADRTMAIN2 -qBNDSRVPGM=$(OS400_ICCSDK_OUTPUTDIR)/QADRTTS
+OS400_LDFLAGS      	= -v $(OS400_OUT) $@ -qTGTRLS=V5R3M0 -qENTMOD=$(OS400_ICCSDK_OUTPUTDIR)/QADRTMAIN2 -qBNDSRVPGM=$(OS400_ICCSDK_OUTPUTDIR)/QADRTTS
 OS400_LDFLAGS2      	= -v $(OS400_OUT) $@ -qTGTRLS=V5R3M0 -qENTMOD=$(OS400_ICCSDK_OUTPUTDIR)/QADRTMAIN2 -qBNDSRVPGM="$(OS400_ICCSDK_OUTPUTDIR)/QADRTTS $(OS400_ICC_LIB)/$(OS400_LIB_400)"
 OS400_SLDFLAGS       	= -v $(OS400_OUT) $@ -qTGTRLS=V5R3M0 -qBNDSRVPGM="$(OS400_ICCSDK_OUTPUTDIR)/QADRTTS $(OS400_ICC_LIB)/$(OS400_LIB_400)" -qSTGMDL=*INHERIT -qALWLIBUPD=*NO -qALWUPD=*NO
 OS400_SLDFLAGS2       	= -v $(OS400_OUT) $@ -qTGTRLS=V5R3M0 -qBNDSRVPGM=$(OS400_ICCSDK_OUTPUTDIR)/QADRTTS -qSTGMDL=*INHERIT -qALWLIBUPD=*NO -qALWUPD=*NO
@@ -1587,6 +1619,7 @@ OS400X_MT		= true
 
 #--- Map platform specific definitions to global definitions
 
+SHELL          = $($(OPSYS)_SHELL)
 RM             = $($(OPSYS)_RM)
 MKDIR          = $($(OPSYS)_MKDIR)
 CP             = $($(OPSYS)_CP)
@@ -1610,7 +1643,6 @@ SHLPRFX        = $($(OPSYS)_SHLPRFX)
 SHLSUFX        = $($(OPSYS)_SHLSUFX)
 STLPRFX        = $($(OPSYS)_STLPRFX)
 STLSUFX        = $($(OPSYS)_STLSUFX)
-OPENSSL_PATH_SETUP = $($(OPSYS)_OPENSSL_PATH_SETUP)
 STRIP          = $($(OPSYS)_$(CONFIG)_STRIP)
 ICC_RUN_SETUP  = $($(OPSYS)_ICC_RUN_SETUP)
 
@@ -1630,3 +1662,13 @@ EX_SUFFIX       = $($(OPSYS)_EX_SUFFIX)
 CLEAN400_ICC    = $($(OPSYS)_CLEAN400_ICC)
 CLEAN400_MODS   = $($(OPSYS)_CLEAN400_MODS)
 
+# muppet.mk needs this definition, maily used in iccpkg
+$(OPSYS)_OLD_ICC	= OLD_ICC/$(OPSYS)
+# avoid directory rename here - WIN_X86_64 can stay
+WIN64_VS2022_OLD_ICC	= OLD_ICC/WIN_X86_64
+WIN32_VS2022_OLD_ICC	= OLD_ICC/WIN32_VS2013
+OLD_ICC		= $($(OPSYS)_OLD_ICC)
+
+# MUPPET is set by the build system based on FIPS module presence and it also writes gsk_wrap2_a.c to match
+# if we reset it here then we will be inconsistent with gsk_wrap2_a.c which links in FIPS ICCC_ prefix APIs
+#MUPPET = $($(OPSYS)_MUPPET)

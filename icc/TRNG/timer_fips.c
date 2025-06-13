@@ -1,8 +1,8 @@
 /*************************************************************************
 // Copyright IBM Corp. 2023
 //
-// Licensed under the Apache License 2.0 (the "License").  You may not use
-// this file except in compliance with the License.  You can obtain a copy
+// Licensed under the Apache License 2.0 (the "License"). You may not use
+// this file except in compliance with the License. You can obtain a copy
 // in the file LICENSE in the source distribution.
 *************************************************************************/
 
@@ -395,7 +395,7 @@ int FIPS_getbytes(E_SOURCE *E, unsigned char *buffer, int len)
                 if(0 != ht(&(E->hti),buffer) ) {
                     ecount++;
                     TF->done = 0;
-                    len = 0;
+                    count = 0;
                 }
             }
             if(ecount > MAX_HT_FAIL) {

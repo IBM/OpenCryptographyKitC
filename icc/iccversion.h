@@ -30,19 +30,33 @@
 
 #else   /* !ICC_OFFICIAL_BUILD */
 
-#  define ICC_PRODUCT_NAME       "Unknown"
+#  define ICC_PRODUCT_NAME       "ICC"
 #  define ICC_VERSION_MOD        0
 #  define ICC_VERSION_FIX        0
 #  define ICC_BUILD_DATE         0
 #  define ICC_BUILD_TIME         0
-#  define ICC_CMVC_INFO          "Unofficial build"
 #  define ICC_EXTRACT_DATE       0
 #  define ICC_EXTRACT_TIME       0
 
 #endif   /* ICC_OFFICIAL_BUILD */
 
+/* these will normally come from buildinfo.h */
+
+#ifndef ICC_GIT_BRANCH
+#define ICC_GIT_BRANCH         "n/a"
+#endif
+#ifndef ICC_GIT_HASH
+#define ICC_GIT_HASH           "n/a"
+#endif
+#ifndef OCKC_GIT_BRANCH
+#define OCKC_GIT_BRANCH        "n/a"
+#endif
+#ifndef OCKC_GIT_HASH
+#define OCKC_GIT_HASH          "n/a"
+#endif
+
 #if !defined(ICC_VERSION_MOD)
-#   define ICC_VERSION_MOD 0
+#   define ICC_VERSION_MOD 11
 #endif
 
 #if !defined(ICC_VERSION_FIX)

@@ -1,15 +1,14 @@
 /*************************************************************************
 // Copyright IBM Corp. 2023
 //
-// Licensed under the Apache License 2.0 (the "License").  You may not use
-// this file except in compliance with the License.  You can obtain a copy
+// Licensed under the Apache License 2.0 (the "License"). You may not use
+// this file except in compliance with the License. You can obtain a copy
 // in the file LICENSE in the source distribution.
 *************************************************************************/
 
-/*************************************************************************
+/*
 // Description: Source file for the icc static library
-//
-*************************************************************************/
+*/
 
 /* IMPORTANT NOTE
    This file generates the ICC static stub - a static library. 
@@ -56,8 +55,6 @@ const char ICC_SCCSInfo[] =
     "@(#)ProductName:      " ICC_PRODUCT_NAME "\n"
     "@(#)ProductVersion:   " ICC_PRODUCT_VERSION "\n"
   };
-
-
 
 
 /*#define DEBUG_VERBOSE

@@ -1,8 +1,8 @@
 /*************************************************************************
 // Copyright IBM Corp. 2023
 //
-// Licensed under the Apache License 2.0 (the "License").  You may not use
-// this file except in compliance with the License.  You can obtain a copy
+// Licensed under the Apache License 2.0 (the "License"). You may not use
+// this file except in compliance with the License. You can obtain a copy
 // in the file LICENSE in the source distribution.
 *************************************************************************/
 
@@ -13,7 +13,7 @@
 *************************************************************************/
 
 /* Note: DO NOT #include icclib.h. 
-   It sucks in macros which resolve to function references on older compilers
+   It includes macros which resolve to function references on older compilers
    and that in turn makes libicc.a directly dependent on openssl
 */
 #include "platform.h"

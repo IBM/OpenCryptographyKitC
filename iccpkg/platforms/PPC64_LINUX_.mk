@@ -1,2 +1,2 @@
-include platforms/UNIX64.mk
+include platforms/UNIX.mk
 

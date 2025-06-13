@@ -22,11 +22,12 @@
 #
 #******************************************************************************
 
+ICC_ROOT=../..
 
 #-- Directories
 ICC_INC_DIR    = ../
 ICC_PRNG_DIR   =
-OPENSSL_INC_DIR = ../../openssl-1.0.1/include/ 
+OPENSSL_INC_DIR = $(ICC_ROOT)/openssl-1.0.1/include/ 
 
 HDRS	= -I ./ -I $(ICC_INC_DIR) -I $(OPENSSL_INC_DIR) -I../fips-prng
 

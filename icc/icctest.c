@@ -1,8 +1,8 @@
 /*************************************************************************
 // Copyright IBM Corp. 2023
 //
-// Licensed under the Apache License 2.0 (the "License").  You may not use
-// this file except in compliance with the License.  You can obtain a copy
+// Licensed under the Apache License 2.0 (the "License"). You may not use
+// this file except in compliance with the License. You can obtain a copy
 // in the file LICENSE in the source distribution.
 *************************************************************************/
 
@@ -15,8 +15,16 @@
 #include <stdlib.h>
 #include <string.h>
 #if defined(JGSK_WRAP)
+/* Using JCC_ namespace - reserved for Java JNI */
 #  include "jcc_a.h"
+#else
+#if defined(ICKC_WRAP)
+/* Using ICKC_ namespace */
+#  include "ickc_a.h"
 #endif
+#endif
+/* default is ICC_ namespace */
+/* note: GSKit V8 loads ICC into global symbol with ICC_ symbols */
 #include "icc.h"
 
 /* Consider using the --tool=massif stacks=yes option to Valgrind instead
@@ -693,6 +701,11 @@ int doEVPEnvelopeAndSignatureUnitTest(ICC_CTX *ICC_ctx)
     check_stack(1);
 	                        
     md_ctx = ICC_EVP_MD_CTX_new(ICC_ctx);
+    if (NULL == md_ctx) {
+       printf("EVP Envelope And Signature abort. Could not create MD_CTX.\n");
+       rv = ICC_ERROR;
+    }
+    else {
     check_stack(1);
     ICC_EVP_MD_CTX_init(ICC_ctx,md_ctx);
     check_stack(1);
@@ -767,7 +780,8 @@ int doEVPEnvelopeAndSignatureUnitTest(ICC_CTX *ICC_ctx)
       ICC_EVP_DigestVerifyFinal(ICC_ctx,md_ctx,buf2,uint2);
       OSSLE(ICC_ctx);
       printf("\n");
-    } else {
+       }
+       else {
       printf("N/A\n");
     }
 
@@ -778,6 +792,7 @@ int doEVPEnvelopeAndSignatureUnitTest(ICC_CTX *ICC_ctx)
     }
     ICC_RSA_free(ICC_ctx,rsa);
     printf("EVP Envelope And Signature Unit test successfully completed!\n");
+  }
   }
   if(NULL != status) {
     free(status);
@@ -1005,8 +1020,8 @@ int doKeyUnitTest(ICC_CTX *ICC_ctx) {
       l1 = retcode = ICC_i2d_PublicKey(ICC_ctx,pkey,&tptr1);
       ICC_EVP_PKEY_free(ICC_ctx,pkey);
       }
-      tptr1 = buf1;
-      pkey = ICC_d2i_PublicKey(ICC_ctx,ICC_EVP_PKEY_RSA,NULL,&tptr1,l1);
+      tptr = buf1;
+      pkey = ICC_d2i_PublicKey(ICC_ctx,ICC_EVP_PKEY_RSA,NULL,&tptr,l1);
       if (NULL != pkey) {
           ICC_EVP_PKEY_free(ICC_ctx,pkey);
       }   
@@ -1209,7 +1224,7 @@ int doKeyUnitTest(ICC_CTX *ICC_ctx) {
       pkey = ICC_EVP_PKEY_new(ICC_ctx);
       /* Generate a DSA key */
 
-      dsa = ICC_DSA_generate_parameters(ICC_ctx, 256, (unsigned char *)buf1, 20,
+      dsa = ICC_DSA_generate_parameters(ICC_ctx, 256, buf1, 20,
                                         &counter, &h, NULL, NULL);
 
       retcode = ICC_DSA_generate_key(ICC_ctx, dsa);
@@ -1230,8 +1245,8 @@ int doKeyUnitTest(ICC_CTX *ICC_ctx) {
       pkey = NULL;
 
       pkey = ICC_EVP_PKEY_new(ICC_ctx);
-      tptr1 = buf1;
-      ICC_d2i_PrivateKey(ICC_ctx, 0, &pkey, &tptr1, 0);
+      tptr = buf1;
+      ICC_d2i_PrivateKey(ICC_ctx, 0, &pkey, &tptr, 0);
       /* free the pkey */
       ICC_EVP_PKEY_free(ICC_ctx, pkey);
       pkey = NULL;
@@ -1239,8 +1254,8 @@ int doKeyUnitTest(ICC_CTX *ICC_ctx) {
               as the d2i overwrites some fields otherwise
       */
       pkey = ICC_EVP_PKEY_new(ICC_ctx);
-      tptr1 = (unsigned char *)buf1;
-      ICC_d2i_PublicKey(ICC_ctx, 0, &pkey, &tptr1, 0);
+      tptr = buf1;
+      ICC_d2i_PublicKey(ICC_ctx, 0, &pkey, &tptr, 0);
       /* free the pkey */
       ICC_EVP_PKEY_free(ICC_ctx, pkey);
       pkey = NULL;
@@ -1687,7 +1702,9 @@ int doEC_KEYTest(ICC_CTX *ICC_ctx)
   const ICC_EC_POINT *ec_pub = NULL;
 
   unsigned char *ptr = NULL;
+  const unsigned char *ptr1 = NULL;
   unsigned char *buf = NULL;
+
   int len = 0;
   int nid = 0;
  
@@ -1770,8 +1787,8 @@ int doEC_KEYTest(ICC_CTX *ICC_ctx)
 	ptr = buf;
 	len = ICC_i2d_ECPrivateKey(ICC_ctx,ec_key,&ptr);
 	
-	ptr = buf;
-	ec_key1 = ICC_d2i_ECPrivateKey(ICC_ctx,NULL,(const unsigned char **)&ptr,len);
+	ptr1 = buf;
+	ec_key1 = ICC_d2i_ECPrivateKey(ICC_ctx,NULL,&ptr1,len);
 	if(NULL == ec_key1) {
 	  printf("d2i_ECPrivateKey failed, key is NULL\n");
 	} else {
@@ -1788,8 +1805,8 @@ int doEC_KEYTest(ICC_CTX *ICC_ctx)
 	
 	ICC_i2d_ECParameters(ICC_ctx,ec_key,&ptr);
 	
-	ptr = buf;
-	ec_key1 = ICC_d2i_ECParameters(ICC_ctx,NULL,(const unsigned char **)&ptr,len);
+	ptr1 = buf;
+	ec_key1 = ICC_d2i_ECParameters(ICC_ctx,NULL,&ptr1,len);
       
 	ICC_EC_KEY_free(ICC_ctx,ec_key1);
 	ec_key1 = NULL;        
@@ -1806,8 +1823,8 @@ int doEC_KEYTest(ICC_CTX *ICC_ctx)
 	ICC_i2d_ECPKParameters(ICC_ctx,group,&ptr);
 	ICC_EC_GROUP_set_asn1_flag(ICC_ctx,(ICC_EC_GROUP *)group,0);
 	
-	ptr = buf;
-	group = ICC_d2i_ECPKParameters(ICC_ctx,NULL,&ptr,len);
+	ptr1 = buf;
+	group = ICC_d2i_ECPKParameters(ICC_ctx,NULL, &ptr1,len);
 	OSSLE(ICC_ctx);
 	ICC_EC_GROUP_free(ICC_ctx,(ICC_EC_GROUP *)group);
 	group = NULL;
@@ -1821,12 +1838,12 @@ int doEC_KEYTest(ICC_CTX *ICC_ctx)
 	
 	ICC_i2o_ECPublicKey(ICC_ctx,ec_key,&ptr);
 	OSSLE(ICC_ctx);
-	ptr = buf;
+	ptr1 = buf;
 	ec_key1 = ICC_EC_KEY_new_by_curve_name(ICC_ctx,nid);
-	ICC_o2i_ECPublicKey(ICC_ctx,&ec_key1,&ptr,len);
+	ICC_o2i_ECPublicKey(ICC_ctx,&ec_key1,&ptr1,len);
 	OSSLE(ICC_ctx);
 	free(buf);
-	ptr = buf = NULL;
+	ptr1 = ptr = buf = NULL;
       }
       /* End export/import */
       check_stack(1);
@@ -2399,6 +2416,7 @@ static int do_P8_subset(ICC_CTX *ICC_ctx,ICC_EVP_PKEY *pkey)
   int rv = 0;
   unsigned char *buf = NULL;
   unsigned char *tmp = NULL;
+  const unsigned char *cbuf = NULL;
   int bufl = 0;
   ICC_PKCS8_PRIV_KEY_INFO *p8info = NULL;
   ICC_PKCS8_PRIV_KEY_INFO *p8info1 = NULL;
@@ -2421,8 +2439,8 @@ static int do_P8_subset(ICC_CTX *ICC_ctx,ICC_EVP_PKEY *pkey)
   }
 
   if( 0 == rv ) {
-    buf = tmp;
-    p8info1 = ICC_d2i_PKCS8_PRIV_KEY_INFO(ICC_ctx,NULL,&buf,bufl);
+    cbuf = tmp;
+    p8info1 = ICC_d2i_PKCS8_PRIV_KEY_INFO(ICC_ctx,NULL, &cbuf,bufl);
     if(NULL == p8info1) {
       rv = 1;
     }
@@ -3156,6 +3174,9 @@ int doPostStartupTest(ICC_CTX *ICC_ctx, ICC_STATUS *status) {
   int rv = ICC_OK;
   int retcode;
   char value[ICC_VALUESIZE];
+#if 0
+  /* this may fail if the path is actually shorter than 9 bytes */
+  {
   char value1[9]; /* Deliberately broken */
 
   value1[0] = '\0';
@@ -3169,10 +3190,10 @@ int doPostStartupTest(ICC_CTX *ICC_ctx, ICC_STATUS *status) {
     rv = ICC_ERROR;
   }
   retcode = ICC_SetValue(ICC_ctx, status, ICC_INSTALL_PATH, (void *)value1);
-#if 0
   if( retcode == ICC_OK) {
     printf("ICC vulnerable to invalid ICC_SetValue() - expect a crash [%s]\n",value1);
     rv = ICC_ERROR;
+  }
   }
 #endif
   value[0] = '\0';
@@ -3290,7 +3311,7 @@ int doPostStartupTest(ICC_CTX *ICC_ctx, ICC_STATUS *status) {
 _declspec(dllexport)
 #endif
 #endif
-int doUnitTest(int test,char *fips, int unicode)
+int doUnitTest(const char* iccPath, int test,char *fips, int unicode)
 {
   int rv = ICC_OSSL_SUCCESS;
   int error = 0;
@@ -3300,7 +3321,7 @@ int doUnitTest(int test,char *fips, int unicode)
   ICC_CTX *ICC_ctx1 = NULL;
   int retcode = 0, testnum = 1;
   char* value = NULL;
-  static char *path = NULL;
+  static const char *path = NULL;
   static char tmp[ICC_VALUESIZE];
 #if defined(_WIN32)
   static wchar_t *wpath = NULL;
@@ -3312,6 +3333,9 @@ int doUnitTest(int test,char *fips, int unicode)
   wpath = L"../package";
 #   endif
 #endif
+  /* allow user to override path */
+  if (!path)
+     path = iccPath;
   fips_mode = 0;
   status = (ICC_STATUS*)calloc(1,sizeof(ICC_STATUS));
   status1 = (ICC_STATUS*)calloc(1,sizeof(ICC_STATUS));
@@ -3553,6 +3577,7 @@ static void usage(char *prgname,char *text)
 	 );
   printf("           note that correct usage of the ICC API is not guaranteed\n");
   printf("       n = a single test number to run\n");
+  printf("       -p <icc path> path to ICC\n");
   printf("       -t <num> RNG tuning algorithm, 0 = unset, 1 = heuristic, 2 = estimate\n");
   printf("       -x <num> a single test to exclude\n");
   printf("       -u<nicode> start ICC with a Unicode path (Windows only)\n");
@@ -3571,12 +3596,24 @@ int main(int argc, char *argv[])
   int test = 0;
   int unicode = 0;
   int argi = 1;
+  const char* iccPath = NULL;
+
   while(argc > argi  ) {
     if(strncmp("-u",argv[argi],2) == 0) {
       unicode = 1;;
     } else if(strncmp("-h",argv[argi],2) == 0) {
       usage(argv[0],NULL);
       exit(0);
+    }
+    else if (strncmp("-p", argv[argi], 2) == 0) {
+       if (argc > (argi + 1)) {
+          iccPath = argv[argi + 1];
+          argi++;
+       }
+       else {
+          usage(argv[0], NULL);
+          exit(0);
+       }
     } else if(strncmp("-t",argv[argi],2) == 0) {
       if(argc > (argi+1)) {
 	tuner = atoi(argv[argi+1]);
@@ -3600,12 +3637,12 @@ int main(int argc, char *argv[])
       return 1;
     }
   }
-  if (ICC_OSSL_SUCCESS != doUnitTest(test,"on",unicode)) {
+  if (ICC_OSSL_SUCCESS != doUnitTest(iccPath, test,"on",unicode)) {
     printf("ICC unit test failed - FIPS mode!\n");
     return 1;
   }
   printf("\n\n\n");
-  if ( ICC_OSSL_SUCCESS != doUnitTest(test,"off",unicode)) {
+  if ( ICC_OSSL_SUCCESS != doUnitTest(iccPath, test,"off",unicode)) {
     printf("ICC unit test failed - non-FIPS mode!\n");
     return 1;
   }

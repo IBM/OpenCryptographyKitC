@@ -1,8 +1,8 @@
 /*************************************************************************
 // Copyright IBM Corp. 2023
 //
-// Licensed under the Apache License 2.0 (the "License").  You may not use
-// this file except in compliance with the License.  You can obtain a copy
+// Licensed under the Apache License 2.0 (the "License"). You may not use
+// this file except in compliance with the License. You can obtain a copy
 // in the file LICENSE in the source distribution.
 *************************************************************************/
 
@@ -76,8 +76,8 @@ int trng_raw(E_SOURCE *E,
 
   while (len > 0)
   {
-    /* Try to gather data with sufficient entropy, if we can't eventually 
-      time out and die. We read a buffer at a time, optomistically copy
+    /* Try to gather data with sufficient entropy, if we can't we shutdown.
+      We read a buffer at a time, optimistically copy
       data when it passes the health tests, refill buffer if we didn't 
       get enough 'good' data
     */

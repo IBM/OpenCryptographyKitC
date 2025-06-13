@@ -26,9 +26,7 @@ typedef pthread_mutex_t ICC_Mutex;
 #endif
 #endif
 
-#include "iccversion.h"
 #include "iccglobals.h"   /* global definitions */
-
 
 #include "openssl/rand.h" /* Wrong order for Windows */
 #include "openssl/evp.h"
@@ -60,6 +58,7 @@ typedef pthread_mutex_t ICC_Mutex;
 #include "fips-prng/SP800-90.h"
 
 typedef void (*CALLBACK_T)(const char *,int,int);
+typedef void (*TRACE_CALLBACK_T)(const char*, const char*);
 
 #include "icclib_a.h"
 /* Pick up KDF_CTX type */ 
@@ -76,8 +75,6 @@ typedef void (*CALLBACK_T)(const char *,int,int);
   This only limits the size of very large objects that could be created
 */
 extern void * CRYPTO_calloc(int nmemb,int size,const char *file, int line);
-extern int my_EVP_MD_CTX_free (EVP_MD_CTX * x);
-int my_EVP_ENCODE_CTX_free(EVP_ENCODE_CTX * a);
 int my_CMAC_Init(CMAC_CTX *cmac_ctx,const EVP_CIPHER *cipher,unsigned char *key,unsigned int keylen);
 
 int my_CMAC_Final(CMAC_CTX *cmac_ctx,unsigned char *md,unsigned int maclen);
@@ -113,13 +110,7 @@ int SelfTest (ICClib *pcb,ICC_STATUS * status);
 
 
 const BIGNUM *DH_get_PublicKey (const DH * dh);
-RSA * my_RSA_new();
 
-int my_HMAC_Init(HMAC_CTX *ctx, const void *key, int key_len,const EVP_MD *md);
-int my_EVP_DecryptInit(EVP_CIPHER_CTX *ctx,const EVP_CIPHER *type,unsigned char *key, unsigned char *iv);
-int my_EVP_EncryptInit(EVP_CIPHER_CTX *ctx,const EVP_CIPHER *type,unsigned char *key, unsigned char *iv);
-int my_EVP_PKEY_encrypt(unsigned char *enc_key,unsigned char *key,int key_len,EVP_PKEY *pub_key);
-int my_EVP_PKEY_decrypt(unsigned char *dec_key,unsigned char *enc_key,int enc_key_len,EVP_PKEY *private_key);
 int my_HMAC_Init(HMAC_CTX *ctx, const void *key, int key_len,const EVP_MD *md);
 const FUNC *OS_helpers();
 

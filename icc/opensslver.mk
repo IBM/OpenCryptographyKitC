@@ -35,4 +35,4 @@ OPENSSL__FLAG = ${OPENSSL_release_FLAG}
 
 # OpenSSL 1.1.x
 OSSL_FLAGS	= 	no-engine no-sctp no-idea no-rc5 no-whirlpool no-zlib enable-mdc2 enable-camellia enable-md2 no-seed \
-				${OPENSSL_${CONFIG}_FLAG}
+				$(OPENSSL_$(CONFIG)_FLAG)

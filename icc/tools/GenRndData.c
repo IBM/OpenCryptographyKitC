@@ -1,8 +1,8 @@
 /*************************************************************************
 // Copyright IBM Corp. 2023
 //
-// Licensed under the Apache License 2.0 (the "License").  You may not use
-// this file except in compliance with the License.  You can obtain a copy
+// Licensed under the Apache License 2.0 (the "License"). You may not use
+// this file except in compliance with the License. You can obtain a copy
 // in the file LICENSE in the source distribution.
 *************************************************************************/
 
@@ -28,7 +28,7 @@
 #endif
 
 #include "TRNG/noise_to_entropy.h"
-#include "TRNG/TRNG_ALT4.h"
+#include "TRNG/TRNG_FIPS.h"
 
 #define MIN_SAMP 64
 
@@ -50,7 +50,9 @@ void *ICC_Calloc(size_t n, size_t sz, const char *file, int line) {
 
 void ICC_Free(void *ptr) { free(ptr); }
 
-
+/* Disable this facility in GenRndData for now
+*/
+int OPENSSL_HW_rand(unsigned char *buf) { return 0; }
 /* Not on ARM */
 #if defined(__ARMEL__) || defined(__ARMEB__) || defined(__aarch64__)
 long efOPENSSL_rdtsc()
@@ -72,19 +74,20 @@ unsigned int Personalize(unsigned char *buffer)
 
 static E_SOURCE trng;
 
-static ENTROPY_IMPL MYTRNGS [] = {
+static ENTROPY_IMPL MYTRNGS [2] = {
   {
-    "TRNG_HW",
-    TRNG_HW,
-    2,
-    ALT4_getbytes,
-    ALT4_Init,
-    ALT4_Cleanup,
-    ALT4_preinit,
-    ALT4_Avail,
+    "TRNG_FIPS",       /*!< Common name */
+    TRNG_FIPS,          /*!< Enum used internally */  
+    4, /*!< Number of bits needed to produce nominally one bit of entropy after compression */           
+    TRNG_FIPS_getbytes, /*!< Callback to a buffer of entropy data */
+    TRNG_FIPS_Init,    /*!< Callback for TRNG Initialization */
+    TRNG_FIPS_Cleanup, /*!< Callback for TRNG Cleanup */
+    TRNG_FIPS_preinit, /*!< Callback for (global) setup for this TYPE of entropy source */
+    TRNG_FIPS_Avail,   /*!< availability */
     NULL,
-    0
+    1
   }
+
 
 };
 
@@ -99,6 +102,9 @@ void usage(char *me, char *why) {
   fprintf(stderr,"      N is the number of bytes of data to generate, N should be > 20,000, 250,000 is recommended\n");
   fprintf(stderr,"      Output will be rounded up to a 256 byte boundary\n");
   fprintf(stderr,"      %s is intended to generate raw random from ICC's internal TRNG for offile statistical testing.\n",me);
+
+  fprintf(stderr,"      Note: To test other variants, install GSKit-Crypto and use GenRndData2\n");
+
 }
 /*!
   @brief Generate data needed for offline statistical testing of ICC's "raw" TRNG source

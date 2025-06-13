@@ -482,8 +482,10 @@ int AES_GCM_EncryptUpdate(AES_GCM_CTX *ain, unsigned char *aad,
     }
     if (NULL != data) {
       rv = EVP_EncryptUpdate(a->ctx, out, &outl, data, datalen);
+      if (outlen) {
       *outlen = outl;
     }
+  }
   }
   return rv;
   }
@@ -531,7 +533,9 @@ int AES_GCM_EncryptUpdate(AES_GCM_CTX *ain, unsigned char *aad,
       }
       if (NULL != data) {
         rv = EVP_DecryptUpdate(a->ctx, out, &outl, data, datalen);
+        if (outlen) {
         *outlen = outl;
+        }
       }
     }
     return rv;

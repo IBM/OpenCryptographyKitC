@@ -19,6 +19,9 @@ ossl.sig: $(MYOPENSSL) $(OSSLDLL) $(FILESIZE)
 	$(MYOPENSSL) dgst -sha256 -hex -sign privkey.rsa $(OSSLDLL) >> ossl.sig
 
 
+icchash.h: icc.sig ossl.sig icchash$(EXESUFX)
+	./icchash icc.sig ossl.sig $@
+
 #
 # Moved to platform specific because at least on HP/UX 
 # we need to unarchive libcrypto.a and relink it as a

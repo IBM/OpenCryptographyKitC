@@ -1,15 +1,14 @@
 /*************************************************************************
 // Copyright IBM Corp. 2023
 //
-// Licensed under the Apache License 2.0 (the "License").  You may not use
-// this file except in compliance with the License.  You can obtain a copy
+// Licensed under the Apache License 2.0 (the "License"). You may not use
+// this file except in compliance with the License. You can obtain a copy
 // in the file LICENSE in the source distribution.
 *************************************************************************/
 
-/*************************************************************************
+/*
 // Description: Checking own signature against external signature file
-//
-*************************************************************************/
+*/
 
 /* File format
 # Comments
@@ -649,7 +648,7 @@ static void usage(char *pname, char *str) {
   printf("usage:\t %s sigfile keyfile [-v(erify)] [-SELF] [-FILE file] "
          "[\"X=Y\"] ...[\"Z=K\"]\n",
          pname);
-  printf("OR:\t$s sigfile keyfile -v(erify) -FILE file\n");
+  printf("OR:\t%s sigfile keyfile -v(erify) -FILE file\n", pname);
   if (NULL != str) {
     printf("\t\tError:%s\n", str);
   }
@@ -675,7 +674,7 @@ int main(int argc, char *argv[]) {
   char *tptr = NULL;
   char *pptr = NULL;
   EVP_PKEY *rsakey = NULL;
-  char *tweaks[MAXTWEAKS]; /* Seriously, more than twenty ? */
+  char *tweaks[MAXTWEAKS];
   int i = 0, j = 0;
   int signself = 0;
   int verify = 0;
@@ -699,10 +698,18 @@ int main(int argc, char *argv[]) {
     exit(1);
   }
 
-  OPENSSL_init_crypto(
+  {
+     int rc = 0;
+     rc = OPENSSL_init_crypto(
       OPENSSL_INIT_NO_LOAD_CONFIG | OPENSSL_INIT_LOAD_CRYPTO_STRINGS |
           OPENSSL_INIT_ADD_ALL_DIGESTS | OPENSSL_INIT_ADD_ALL_CIPHERS,
       NULL);
+     if (rc != 1) {
+        usage("OpenSSL", "OPENSSL_init_crypto");
+        exit(1);
+     }
+     ERR_load_crypto_strings();
+  }
 
   /* Step through and pick up anything else */
   for (i = 3; i < argc; i++) {
@@ -765,10 +772,10 @@ int main(int argc, char *argv[]) {
     case 0:
       printf("Binary file %s verified O.K.\n", bname);
       printf("Signature file verified O.K.\n");
-      for (i = 0; i < 20; i++) {
+      for (i = 0; i < MAXTWEAKS; i++) {
         if (tweaks[i] != NULL) {
           if (i == 0) {
-            printf("Global settings\n");
+            printf("Global Settings\n");
           }
           printf("\t%s\n", tweaks[i]);
         }
@@ -839,6 +846,8 @@ int main(int argc, char *argv[]) {
     fseek(bfile, 0L, SEEK_SET);
     len = GenSig(bfile, signB, rsakey, 0);
     if (len <= 0) {
+      printf("Error: GenSig: %d\n", len);
+      printf("OpenSSL Error: %s\n", ERR_error_string(ERR_get_error(), NULL));
       usage(argv[0], "Failed to generate signature");
       exit(1);
     }

@@ -1,16 +1,14 @@
 /*************************************************************************
 // Copyright IBM Corp. 2023
 //
-// Licensed under the Apache License 2.0 (the "License").  You may not use
-// this file except in compliance with the License.  You can obtain a copy
+// Licensed under the Apache License 2.0 (the "License"). You may not use
+// this file except in compliance with the License. You can obtain a copy
 // in the file LICENSE in the source distribution.
 *************************************************************************/
 
-/*************************************************************************
+/*
 // Description: Manually created source for the ICCPKG wrapper for GSkit
-//                                                                           
-//
-*************************************************************************/
+*/
 
 #include "icc.h" /* Only so trace source-of tags work */
 #include "loaded.h"
@@ -158,10 +156,13 @@ static char *FUNCTION_NAME(MYNAME,_loaded_from)()
   HMODULE  libHandle;
   IN();
   dirName = (char *)calloc(MAX_PATH,1);
-  libHandle = GetModuleHandle(path);
+  libHandle = GetModuleHandleA(path);
+  if (!libHandle) {
+     libHandle = GetModuleHandleA(NULL);
+  }
   if(NULL != dirName) {
     if (libHandle  &&
-      GetModuleFileName(libHandle,dirName, MAX_PATH-1) < MAX_PATH) {
+      GetModuleFileNameA(libHandle,dirName, MAX_PATH-1) < MAX_PATH) {
       MARK("dirName",dirName != NULL ? dirName : "NULL");
       result = (char *)calloc(strlen(dirName)+1,1);
       if (NULL != result) {

@@ -1,15 +1,14 @@
 /*************************************************************************
 // Copyright IBM Corp. 2023
 //
-// Licensed under the Apache License 2.0 (the "License").  You may not use
-// this file except in compliance with the License.  You can obtain a copy
+// Licensed under the Apache License 2.0 (the "License"). You may not use
+// this file except in compliance with the License. You can obtain a copy
 // in the file LICENSE in the source distribution.
 *************************************************************************/
 
-/*************************************************************************
+/*
 // Description: Manually created source for the ICCPKG wrapper for GSkit
-//
-*************************************************************************/
+*/
 
 /*! \IMPLEMENT
   This is the frequently changing part of the code that becomes
@@ -42,7 +41,25 @@
 #     define JCC_EVP_get_digestbyname(a, b) JCC_EVP_get_digestbyname_disabled(a, b)
 #     define JCC_EVP_get_cipherbyname(a, b) JCC_EVP_get_cipherbyname_disabled(a, b)
 #   endif
-#else /* Normal step library */
+
+#else
+#if defined(ICKC_WRAP)
+
+/* Using ICKC_ namespace */
+#  include "ickc_a.h"
+#  if defined(__MVS__)
+#     include "exports/ickcstepZOS.h"
+#  endif
+#  if defined(GEN_RAND_SEED_HACK)
+#    undef ICC_GenerateRandomSeed
+#    define ICC_GenerateRandomSeed(a,b,c,d)  ICKC_GenerateRandomSeed_disabled(a,b,c,d)
+#  endif /* GEN_RAND_SEED_HACK */
+#  if defined(GETVALUE_HACK)
+#    undef ICC_GetValue
+#    define ICC_GetValue(a, b, c, d, e) ICKC_GetValue_disabled(a, b, c, d, e)
+#  endif /* GETVALUE_HACK */
+
+#else /* Normal GSKit step library */
 #  if defined(__MVS__)
 #     include "exports/iccstepZOS.h"
 #  endif
@@ -59,19 +76,13 @@
 #     define ICC_EVP_get_cipherbyname(a, b) ICC_EVP_get_cipherbyname_disabled(a, b)
 #  endif
 #endif
+#endif
 
 #if !defined(GSK_GLOBAL)
 #define GSK_GLOBAL ""
 #endif
 
-
-
-
 #include "icc.h"
-/*
-#include "HKDF/hkdf.h"
-*/
-#include "iccversion.h"
 #include "loaded.h"
 #include <time.h>
 #define TRACE_CODE 1
@@ -83,6 +94,7 @@ static int truncated_status(ICC_STATUS *status);
 static int invalid_status(ICC_STATUS *status);
 static int memory_status(ICC_STATUS *status);
 
+int gskiccs_path(char* returned_path, int path_len);
 
 #if !defined(JGSK_WRAP) /* Pick up PKCS#11 */
 typedef unsigned long (*PF_C_GetFL)(void *);
@@ -183,7 +195,11 @@ static wchar_t mypath[ICC_VALUESIZE];
 #if defined(JGSK_WRAP)
 int ICC_LINKAGE JCC_GetValue(ICC_CTX *pcb,ICC_STATUS* status,ICC_VALUE_IDS_ENUM valueID,void* value,int valueLength)
 #else
+#if defined(ICKC_WRAP)
+int ICC_LINKAGE ICKC_GetValue(ICC_CTX* pcb, ICC_STATUS* status, ICC_VALUE_IDS_ENUM valueID, void* value, int valueLength)
+#else
 int ICC_LINKAGE ICC_GetValue(ICC_CTX *pcb,ICC_STATUS* status,ICC_VALUE_IDS_ENUM valueID,void* value,int valueLength)
+#endif
 #endif
 {
   WICC_CTX *wpcb = (WICC_CTX *)pcb;
@@ -196,12 +212,12 @@ int ICC_LINKAGE ICC_GetValue(ICC_CTX *pcb,ICC_STATUS* status,ICC_VALUE_IDS_ENUM 
     rv = default_status(status);
   }
   if(NULL != wpcb) {
-#  if HAVE_N_ICC
+#  if defined(HAVE_N_ICC)
     if(NULL != wpcb->Nctx) {
       rv = ICCN_GetValue(wpcb->Nctx,status,valueID,value,valueLength);
     }
 #  endif
-#  if HAVE_C_ICC 
+#  if defined(HAVE_C_ICC )
     if(NULL != wpcb->Cctx) {
 #   if defined(_WIN32)
       if(ICC_INSTALL_PATH == valueID) {
@@ -287,14 +303,18 @@ int ICC_LINKAGE ICC_GetValue(ICC_CTX *pcb,ICC_STATUS* status,ICC_VALUE_IDS_ENUM 
 #if defined(GEN_RAND_SEED_HACK)
 
 
-#if defined(JGSK_WRAP)
 #undef ICC_GenerateRandomSeed
+#if defined(JGSK_WRAP)
     void ICC_LINKAGE JCC_GenerateRandomSeed(ICC_CTX *pcb, ICC_STATUS *status,
                                             int len, void *buffer) 
 #else
-#undef ICC_GenerateRandomSeed
+#if defined(ICKC_WRAP)
+void ICC_LINKAGE ICKC_GenerateRandomSeed(ICC_CTX* pcb, ICC_STATUS* status,
+                                            int len, void* buffer)
+#else
     void ICC_LINKAGE ICC_GenerateRandomSeed(ICC_CTX *pcb, ICC_STATUS *status,
                                             int len, void *buffer) 
+#endif
 #endif
 {
   WICC_CTX *wpcb = (WICC_CTX *)pcb;
@@ -325,6 +345,15 @@ int ICC_LINKAGE JCC_SetValue(ICC_CTX *pcb,ICC_STATUS* status,ICC_VALUE_IDS_ENUM 
 
 int ICC_LINKAGE JCC_Cleanup(ICC_CTX *pcb,ICC_STATUS *status);
 #else
+#if defined(ICKC_WRAP)
+ICC_CTX* ICC_LINKAGE ICKC_Init(ICC_STATUS* status, const char* iccpath);
+
+int ICC_LINKAGE ICKC_Attach(ICC_CTX* pcb, ICC_STATUS* status);
+
+int ICC_LINKAGE ICKC_SetValue(ICC_CTX* pcb, ICC_STATUS* status, ICC_VALUE_IDS_ENUM valueID, const void* value);
+
+int ICC_LINKAGE ICKC_Cleanup(ICC_CTX* pcb, ICC_STATUS* status);
+#else
 ICC_CTX * ICC_LINKAGE ICC_Init(ICC_STATUS* status,const char* iccpath);
 
 int ICC_LINKAGE ICC_Attach(ICC_CTX *pcb,ICC_STATUS* status);
@@ -333,6 +362,7 @@ int ICC_LINKAGE ICC_SetValue(ICC_CTX *pcb,ICC_STATUS* status,ICC_VALUE_IDS_ENUM 
 
 int ICC_LINKAGE ICC_Cleanup(ICC_CTX *pcb,ICC_STATUS *status);
 
+#endif
 #endif
 
 
@@ -378,7 +408,11 @@ const char gskiccs_SCCSInfo[] =
 #if defined (JGSK_WRAP)
 ICC_CTX * ICC_LINKAGE JCC_InitW(ICC_STATUS* status,const wchar_t* iccpath);
 #else
+#if defined (ICKC_WRAP)
+ICC_CTX* ICC_LINKAGE ICKC_InitW(ICC_STATUS* status, const wchar_t* iccpath);
+#else
 ICC_CTX * ICC_LINKAGE ICC_InitW(ICC_STATUS* status,const wchar_t* iccpath);
+#endif
 #endif
 #if defined(HAVE_N_ICC)
 ICC_CTX * ICC_LINKAGE ICCN_InitW(ICC_STATUS* status,const wchar_t* iccpath);
@@ -590,6 +624,7 @@ static void ICC_InitReal(WICC_CTX *wctx, ICC_STATUS *status, int fips) {
   ICC_STATUS *stat = NULL;
 
   IN();
+  MARK("MYNAME", MAKESTRING(FUNCTION_NAME(MYNAME, _)));
   if ((NULL != wctx) && (NULL != status))
   {
     libsCheck();
@@ -628,7 +663,8 @@ static void ICC_InitReal(WICC_CTX *wctx, ICC_STATUS *status, int fips) {
 #else
         strcat(tmppath, "/N");
 #endif
-#if !defined(JGSK_WRAP)
+/* PKCS11 is just in the ICC_ build - It is not an official part of ICC */
+#if !defined(JGSK_WRAP) &&  !defined(ICKC_WRAP)
         hook = C_GetFunctionList; /* So the linker will pull in the PKCS#11 lib */
         if (NULL == hook)
         {
@@ -929,7 +965,7 @@ int ICC_LINKAGE ICC_SetValue(ICC_CTX *pcb,ICC_STATUS* status,ICC_VALUE_IDS_ENUM 
   } else {
     /* FIPS approved mode we catch if we can */
     if (ICC_FIPS_APPROVED_MODE == valueID) {
-      MARK("ICC_FIPS_APPROVED_MODE in", (char *)value);
+      MARK("ICC_FIPS_APPROVED_MODE is", (char *)value);
       if (NULL != wctx) {
         if (0 == strcasecmp("on", (char *)value)) {
           wctx->prefer_FIPS = 1;

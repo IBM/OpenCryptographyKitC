@@ -1,8 +1,8 @@
 /*************************************************************************
 // Copyright IBM Corp. 2023
 //
-// Licensed under the Apache License 2.0 (the "License").  You may not use
-// this file except in compliance with the License.  You can obtain a copy
+// Licensed under the Apache License 2.0 (the "License"). You may not use
+// this file except in compliance with the License. You can obtain a copy
 // in the file LICENSE in the source distribution.
 *************************************************************************/
 
@@ -37,7 +37,7 @@
 #  define PATH_DELIMITER '\\'
 #  define PATH_DELIMITER_W L'\\'
 
-#  define strcasecmp(a,b) stricmp(a,b)
+#  define strcasecmp(a,b) _stricmp(a,b)
 
 #elif defined(_AIX)
 #  include <errno.h>

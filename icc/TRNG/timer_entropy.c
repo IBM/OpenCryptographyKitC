@@ -1,8 +1,8 @@
 /*************************************************************************
 // Copyright IBM Corp. 2023
 //
-// Licensed under the Apache License 2.0 (the "License").  You may not use
-// this file except in compliance with the License.  You can obtain a copy
+// Licensed under the Apache License 2.0 (the "License"). You may not use
+// this file except in compliance with the License. You can obtain a copy
 // in the file LICENSE in the source distribution.
 *************************************************************************/
 
@@ -253,7 +253,7 @@ ICC_UINT64 RdCTR_raw()
 
 /* START Windows 32 bit (ia32) */
 
-#elif defined(_WIN32) && !defined(WIN64)
+#elif defined(_WIN32) && !defined(_WIN64)
 /* 
    Windows on ia32 rdtsc , well this isn't QUITE right, but we only support
    x86 and itanium currently 
@@ -266,7 +266,7 @@ ICC_UINT64 RdCTR_raw()
 }
 /* END Windows on ia32 */
 /* Start Windows 64 on x86 */
-#elif defined(WIN64) && !defined(_IA64_)
+#elif defined(_WIN64) && !defined(_IA64_)
 #include <windows.h>
 #include <intrin.h>
 ICC_UINT64 RdCTR_raw() 

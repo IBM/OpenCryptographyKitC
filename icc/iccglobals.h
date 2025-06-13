@@ -1,15 +1,13 @@
 /*************************************************************************
 // Copyright IBM Corp. 2023
 //
-// Licensed under the Apache License 2.0 (the "License").  You may not use
-// this file except in compliance with the License.  You can obtain a copy
+// Licensed under the Apache License 2.0 (the "License"). You may not use
+// this file except in compliance with the License. You can obtain a copy
 // in the file LICENSE in the source distribution.
 *************************************************************************/
-
-/*************************************************************************
+/*
 // Description: Global definitions ubiquitous across ICC
-// 
-*************************************************************************/
+*/
 
 /** \file iccglobals.h 
  * @brief ICC Global variable and structure definitions (ICCSDK)
@@ -29,6 +27,7 @@ extern "C" {
 #define ICC_LINKAGE
 #endif
 
+#include<stddef.h>
 /*! @brief
   These are the error codes returned from ICC API calls where the return type allows an error to be returned.
   - Note that where a function returns a pointer, ICC will return NULL if an ICC API error occurs.
@@ -65,6 +64,7 @@ struct ICC_t;
 */
 typedef struct ICC_t ICC_CTX;
 
+typedef struct ossl_param_st OSSL_PARAM;
 
 struct ICC_PRNG_t;
 
@@ -216,6 +216,20 @@ typedef enum {
    Magic numbers for Diffie-Hellman key generation.
    These are the supported types.
 */
+
+/*Param names used in OSSL_PARAMS Scraped from Openssl v3 "core_names.h"*/
+
+#define ICC_OSSL_KDF_PARAM_THREADS           "threads"
+#define ICC_OSSL_KDF_PARAM_ARGON2_LANES      "lanes"
+#define ICC_OSSL_KDF_PARAM_ARGON2_MEMCOST    "memcost"
+#define ICC_OSSL_KDF_PARAM_SALT              "salt"
+#define ICC_OSSL_KDF_PARAM_PASSWORD          "pass"
+#define ICC_OSSL_PARAM_UNSIGNED_INTEGER      2
+#define ICC_OSSL_PARAM_OCTET_STRING          5
+#define ICC_OSSL_KDF_PARAM_ARGON2_VERSION    "version"
+#define ICC_OSSL_KDF_PARAM_MODE              "mode"
+#define ICC_OSSL_PARAM_UNMODIFIED           ((size_t)-1)
+#define ICC_OSSL_PARAM_END                   { NULL, 0, NULL, 0 }
 
 typedef enum {
   ICC_DH_GENERATOR_2	  = 2, /*!< Type 2 key generator */
@@ -394,7 +408,8 @@ typedef enum {
                               */
   ICC_SEED_GENERATOR   = 10,  /*!< Change the Entropy source ICC/OpenSSL uses by default
 				 - Note that this should only be used when the
-				   default entropy source is unusable
+				   default entropy source is unusable, most likely
+				   a virtualized system or new hardware.
 				 - Valid values:  (<b>R/W1</b>)
 				   - "TRNG_HW" (default)
 				   - "TRNG_OS"
@@ -499,8 +514,10 @@ typedef enum {
                                       overhead. This is known thread safe but thread safety
                                       checkers will complain. 
                                       To clear the callback, close the context and
-                                      create a new one.
-                                */                                    				
+                                      create a new one.*/
+									  
+  ICC_TRACE_CALLBACK = 21,       /*!< Set the Trace callback in THIS context */
+
   GSK_ICC_ACTIVE_LIBS = 52     /*!< Integer bit mask, the low two bits are used.
                                      Bit 0 = 1 the FIPS library is loadable
                                      Bit 1 = 1 the non-FIPS library is loadable
@@ -653,6 +670,16 @@ struct ICC_STATUS_t
 }; 
 
 typedef struct ICC_STATUS_t ICC_STATUS;
+
+/* ossl_param_st is sraped from ossl v3*/
+struct ICC_OSSL_PARAM_t {
+	const char* key;             /* the name of the parameter */
+	unsigned int data_type;      /* declare what kind of content is in data */
+	void* data;                  /* value being passed in or out */
+	size_t data_size;            /* data size */
+	size_t return_size;          /* returned size */
+};
+typedef struct ICC_OSSL_PARAM_t ICC_OSSL_PARAM;
 
 #ifdef __cplusplus
 }

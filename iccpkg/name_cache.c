@@ -1,8 +1,8 @@
 /*************************************************************************
 // Copyright IBM Corp. 2023
 //
-// Licensed under the Apache License 2.0 (the "License").  You may not use
-// this file except in compliance with the License.  You can obtain a copy
+// Licensed under the Apache License 2.0 (the "License"). You may not use
+// this file except in compliance with the License. You can obtain a copy
 // in the file LICENSE in the source distribution.
 *************************************************************************/
 
@@ -90,12 +90,15 @@ static void init_caches(WICC_CTX *wctx)
 
 
 
+#undef ICC_EVP_get_digestbyname
 #if defined(JGSK_WRAP)
-#undef JCC_EVP_get_digestbyname
 const ICC_EVP_MD * JCC_EVP_get_digestbyname(ICC_CTX *ctx, const char *name) 
 #else
-#undef ICC_EVP_get_digestbyname
+#if defined(ICKC_WRAP)
+const ICC_EVP_MD* ICKC_EVP_get_digestbyname(ICC_CTX* ctx, const char* name)
+#else
 const ICC_EVP_MD * ICC_EVP_get_digestbyname(ICC_CTX *ctx, const char *name) 
+#endif
 #endif
 {
   WICC_CTX *wctx = (WICC_CTX *)ctx;
@@ -129,12 +132,15 @@ const ICC_EVP_MD * ICC_EVP_get_digestbyname(ICC_CTX *ctx, const char *name)
 }
 
 
+#undef ICC_EVP_get_cipherbyname
 #if defined(JGSK_WRAP)
-#undef JCC_EVP_get_cipherbyname
 const ICC_EVP_CIPHER *JCC_EVP_get_cipherbyname(ICC_CTX *ctx, const char *name) 
 #else
-#undef ICC_EVP_get_cipherbyname
+#if defined(ICKC_WRAP)
+const ICC_EVP_CIPHER* ICKC_EVP_get_cipherbyname(ICC_CTX* ctx, const char* name)
+#else
 const ICC_EVP_CIPHER *ICC_EVP_get_cipherbyname(ICC_CTX *ctx, const char *name) 
+#endif
 #endif
 {
   WICC_CTX *wctx = (WICC_CTX *)ctx;

@@ -1,8 +1,8 @@
 /*************************************************************************
 // Copyright IBM Corp. 2023
 //
-// Licensed under the Apache License 2.0 (the "License").  You may not use
-// this file except in compliance with the License.  You can obtain a copy
+// Licensed under the Apache License 2.0 (the "License"). You may not use
+// this file except in compliance with the License. You can obtain a copy
 // in the file LICENSE in the source distribution.
 *************************************************************************/
 
@@ -23,8 +23,7 @@
 #define ICC_UINT32  uint32_t
 #endif
 
-/*  Can't trust long, which is 4 bytes on windows, 8 on linux
-    stdint.h should be available everywhere. */
+/*  Can't trust long, which is 4 bytes on windows, 8 on linux */
 
 #if defined(_WIN32)
 #define ICC_INT64   INT64
