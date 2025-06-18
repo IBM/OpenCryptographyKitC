@@ -9,22 +9,22 @@ For a debug build on any platform specify CONFIG=debug as an argument to make.
 ### Linux 64-bit
 
 ```bash
-make -k -C icc OPSYS=AMD64_LINUX create_all
-make -k -C icc OPSYS=AMD64_LINUX all
+make -C icc OPSYS=AMD64_LINUX create_all
+make -C icc OPSYS=AMD64_LINUX all
 ```
 
 ### Linux 32-bit
 
 ```bash
-make -k -C icc OPSYS=LINUX create_all
-make -k -C icc OPSYS=LINUX all
+make -C icc OPSYS=LINUX create_all
+make -C icc OPSYS=LINUX all
 ```
 
 ### Windows 64-bit
 
 ```bash
-make -k -C icc OPSYS=WIN64_VS2022 create_all
-make -k -C icc OPSYS=WIN64_VS2022 all
+make -C icc OPSYS=WIN64_VS2022 create_all
+make -C icc OPSYS=WIN64_VS2022 all
 ```
 
 This build is not constrained to MS VS 2022 but is tested on that platform.  
