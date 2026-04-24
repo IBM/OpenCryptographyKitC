@@ -38,4 +38,19 @@ NASM should be added to the windows PATH environment variable.
 Run the appropriate vcvars.bat file in a cmd.exe or otherwise use a development console before running make.  
   
 Note: Windows utilities which use a Unix style PATH such as the gnumake available in msys2 are not supported.  
-Note: Cygwin is not supported.  
+Note: Cygwin is not supported. 
+
+# Contributions
+
+The following contribution guidelines should be followed:
+
+1. View this projects [LICENSE](LICENSE) file. Be sure terms and conditions are acceptable.
+
+1. A pull request should be sent for review only after the github action associated with this repository is automatically executed when a pull request is created.
+
+1. **AI-Assisted Contributions**: We welcome the use of **[Bob](https://bob.ibm.com/)** (the only approved AI tool at this time) throughout the codebase. All Bob-assisted contributions must be properly validated. See our comprehensive [AI Contributions Guide](docs/AI_CONTRIBUTIONS.md) for detailed requirements including:
+   - **APPROVED TOOL**: Only **[Bob](https://bob.ibm.com/)** is permitted - other AI tools are not allowed
+   - Legal compliance and validation procedures
+   - Security considerations for cryptographic code
+   - Best practices for AI-assisted development
+   - Code review process for Bob-assisted contributions 
