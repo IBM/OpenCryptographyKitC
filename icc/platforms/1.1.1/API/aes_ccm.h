@@ -1,12 +1,11 @@
 /* crypto/aes/aes_ccm.h */
-/*----------------------------------------------------------------------------
-// Licensed materials - Property of IBM                                      
+/*************************************************************************
+// Copyright IBM Corp. 2023
 //
-// (C) Copyright IBM Corp.  2007
-// This code was donated to the OpenSSL project under the terms of the 
-// OpenSSL license.
-//
-//---------------------------------------------------------------------------*/
+// Licensed under the Apache License 2.0 (the "License"). You may not use
+// this file except in compliance with the License. You can obtain a copy
+// in the file LICENSE in the source distribution.
+*************************************************************************/
 
 #ifndef HEADER_AES_CCM_H
 #define HEADER_AES_CCM_H

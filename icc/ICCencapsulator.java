@@ -1,6 +1,4 @@
-/*************************************************************************
-// Copyright IBM Corp. 2023
-//
+/**************************************************************************
 // Licensed under the Apache License 2.0 (the "License"). You may not use
 // this file except in compliance with the License. You can obtain a copy
 // in the file LICENSE in the source distribution.
@@ -510,13 +508,13 @@ class FileType {
     FileWriter writer;
     public String name = "";
     static final String copyrightheader = 
-        "/*-----------------------------------------------------------------\n"+
-		"// Copyright IBM Corp. 2023\n"+
-		"//\n"+
-		"// Licensed under the Apache License 2.0 (the \"License\"). You may not use\n"+
-		"// this file except in compliance with the License. You can obtain a copy\n"+
-		"// in the file LICENSE in the source distribution.\n"+
-        "//----------------------------------------------------------------*/\n\n\n";
+        "/*\n"+
+		"** Machine generated code: DO NOT EDIT\n"+
+		"**\n"+
+		"** Licensed under the Apache License 2.0 (the \"License\"). You may not use\n"+
+		"** this file except in compliance with the License. You can obtain a copy\n"+
+		"** in the file LICENSE in the source distribution.\n"+
+        "*/\n\n\n";
     static final String preambleend = "/* Machine generated code: DO NOT EDIT */";
     static final String postamble = "/* Machine generated code: DO NOT EDIT */";
 
@@ -3328,6 +3326,7 @@ class ICCVersion
 	    if(f.exists()) {
 		BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(myfile)));
 		vstr = reader.readLine();
+		vstr = vstr.trim();
 		/* System.out.println("ICCVersion ["+vstr+"]"); */
 	    }
 	    init = true;

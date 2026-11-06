@@ -5,6 +5,7 @@
 iccpkg: ICC_ver.txt ../package/ICCPKG.tar  \
 	../package/gsk_crypto.tar ../package/gsk_crypto_sdk.tar \
 	../package/jgsk_crypto.tar ../package/jgsk_crypto_sdk.tar
+	@echo $@ made
 
 
 ../package/gsk_crypto.tar: ../package/gskit_crypto

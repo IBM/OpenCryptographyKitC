@@ -1,10 +1,14 @@
-/*************************************************************************
+
+/*-----------------------------------------------------------------------------
 // Copyright IBM Corp. 2023
-//
-// Licensed under the Apache License 2.0 (the "License").  You may not use
-// this file except in compliance with the License.  You can obtain a copy
+// Licensed under the Apache License 2.0 (the "License").  You may not use
+// this file except in compliance with the License.  You can obtain a copy
 // in the file LICENSE in the source distribution.
-*************************************************************************/
+//
+// Description: Code for the time specific entropy source
+//              Refactored from the original egather.c
+//              - which just grew and grew and grew 
+*******************************************************************************/
 
 #if !defined(STANDALONE)
 #include "platform.h"
@@ -69,6 +73,15 @@ static const unsigned long marray[16] = {
   0x0000,0x0001,0x0003,0x0007,0x000f,0x001f,0x003f,0x007f,
   0x00ff,0x01ff,0x03ff,0x07ff,0x0fff,0x1fff,0x3fff,0x7fff
 };
+
+/* Delay selection bit mask, 0 - no delay, 1 = close(-1), 2 = open_bad_f(), 4 = Jent */
+static int G_useDelay = 4;
+
+void setDelay(int d)
+{
+    G_useDelay = d;
+}
+
 
 /*!
   @brief 
@@ -763,7 +776,7 @@ unsigned char arm_getbyte_i(int xloops,int fddev,MINIBUF *b)
     read(fddev, &result, sizeof(result));
     s[i] = result >> shift;
     j = 0;
-    looper(&j,&l);
+    looper(&j,&l, (s[i] >> shift) & 0xff, G_useDelay);
   }
   /* Stir gently */
   for(i = 0; i <8 ; i++) {
@@ -1248,8 +1261,8 @@ static void sample(volatile unsigned long *sarray, long *xarray0, int loops)
   k = loops;
   for(i = 0; i <NSAMP1; i++) {
     j = 0;
-    looper(&j,&k);
     t = RdCTR_raw() >> shift;
+    looper(&j, &k, (t >> shift) & 0xff, G_useDelay);
     sarray[i] =  t & 0xff;
   }
   for (i = 0; i < (NSAMP1-1); i++) {
@@ -1446,7 +1459,7 @@ unsigned char getbyte_i(int xloops, MINIBUF *b )
   for(i = 7; i >= 0; i--) {
     s[i] = RdCTR_raw();
     k = 0;
-    looper(&k,&j);
+    looper(&k,&j, (s[i] >> shift) & 0xff, G_useDelay);
   }
 
   /* Stir gently */

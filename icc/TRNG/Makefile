@@ -1,13 +1,12 @@
+#*************************************************************************
+# Copyright IBM Corp. 2023
 #
-# * Copyright IBM Corp. 2023
-# *
-# * Licensed under the Apache License 2.0 (the "License").  You may not use
-# * this file except in compliance with the License.  You can obtain a copy
-# * in the file LICENSE in the source distribution.
-#
+# Licensed under the Apache License 2.0 (the "License"). You may not use
+# this file except in compliance with the License. You can obtain a copy
+# in the file LICENSE in the source distribution.
+#*************************************************************************/
 
-#******************************************************************************
-#
+#*************************************************************************
 # Description: This is the Makefile for the new TRNG code.
 #
 # Usage:  make OPSYS=<[WIN32*|LINUX|AIX|SUN|HPUX]> [CONFIG=<debug|release*>]
@@ -19,6 +18,7 @@
 #        environment to be setup.  This can either be done at compiler
 #        installation time, or by running vcvars32.bat before attempting to
 #        build.  (vcvars32.bat need only be run once per environment/DOS box)
+#
 #
 #******************************************************************************
 

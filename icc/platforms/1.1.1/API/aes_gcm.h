@@ -1,13 +1,13 @@
 /* crypto/aes/aes_gcm.h */
-/*----------------------------------------------------------------------------
-// Licensed materials - Property of IBM                                      
+/*************************************************************************
+// Copyright IBM Corp. 2023
 //
-// (C) Copyright IBM Corp.  2007
-// This code was donated to the OpenSSL project under the terms of the 
-// OpenSSL license.
-//
-// GCM table driven acceleration: Aaron Cristensen November 2007.
-//---------------------------------------------------------------------------*/
+// Licensed under the Apache License 2.0 (the "License"). You may not use
+// this file except in compliance with the License. You can obtain a copy
+// in the file LICENSE in the source distribution.
+*************************************************************************/
+/* GCM table driven acceleration: Aaron Cristensen November 2007. */
+
 
 #ifndef HEADER_AES_GCM_H
 #define HEADER_AES_GCM_H
