@@ -40,7 +40,7 @@ void TRNG_FIPS_preinit(int reinit)
 TRNG_ERRORS TRNG_FIPS_Init(E_SOURCE *E, unsigned char *pers, int perl)
 {
   TRNG_ERRORS rv = TRNG_OK;
-  T_FILTER_Init(&(E->tf));
+  rv = T_MEMORY_Init(&(E->tf));
 
   return rv;
 }
@@ -62,7 +62,7 @@ TRNG_ERRORS TRNG_FIPS_getbytes(E_SOURCE *E,unsigned char *buffer,int len)
   int tlen = 0;
   if(NULL != E) {
     while(len > 0) {
-     if(E_ESTB_BUFLEN != FIPS_getbytes(E,E->nbuf,E_ESTB_BUFLEN)) {
+     if(E_ESTB_BUFLEN != FIPS_getbytes(E,E->nbuf,E_ESTB_BUFLEN, NULL)) {
         rv = TRNG_REQ_SIZE;
         break;
       }       
@@ -88,7 +88,7 @@ TRNG_ERRORS TRNG_FIPS_getbytes(E_SOURCE *E,unsigned char *buffer,int len)
 TRNG_ERRORS TRNG_FIPS_Cleanup(E_SOURCE *E)
 {
   if(NULL != E ) {
-    T_FILTER_Init(&(E->tf));
+    T_MEMORY_Clean(&(E->tf));
   }
    return TRNG_OK;
 }

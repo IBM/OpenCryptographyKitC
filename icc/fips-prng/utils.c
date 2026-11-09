@@ -1,8 +1,8 @@
 /*************************************************************************
 // Copyright IBM Corp. 2023
 //
-// Licensed under the Apache License 2.0 (the "License").  You may not use
-// this file except in compliance with the License.  You can obtain a copy
+// Licensed under the Apache License 2.0 (the "License"). You may not use
+// this file except in compliance with the License. You can obtain a copy
 // in the file LICENSE in the source distribution.
 *************************************************************************/
 
@@ -56,17 +56,20 @@ static unsigned char ab7[4] = {0x00,0x00,0x02,0x02}; /* BE -1 + 1st 2 bytes of s
 int cmp(unsigned char *s1,unsigned const char *s2,int n, char *test)
 {
   int i;
-  if(memcmp(s1,s2,n) != 0) {
-    printf("Test %s failed\nExp =",test);
-    for(i = 0; i < n; i++) {
-      printf("0x%02x,",s2[i]);
+  if (memcmp(s1, s2, n) != 0) {
+      printf("Test %s failed\nExp =", test);
+      for (i = 0; i < n; i++) {
+          printf("0x%02x,", s2[i]);
     }
     printf("\nGot =");
-    for(i = 0; i < n; i++) {
-      printf("0x%02x,",s1[i]);
+      for (i = 0; i < n; i++) {
+          printf("0x%02x,", s1[i]);
     }
     printf("\n");
+      return 1;
   }
+  else
+      return 0;
 }
 int main(int argc,char *argv[])
 {

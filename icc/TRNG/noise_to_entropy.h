@@ -1,8 +1,8 @@
 /*************************************************************************
 // Copyright IBM Corp. 2023
 //
-// Licensed under the Apache License 2.0 (the "License").  You may not use
-// this file except in compliance with the License.  You can obtain a copy
+// Licensed under the Apache License 2.0 (the "License"). You may not use
+// this file except in compliance with the License. You can obtain a copy
 // in the file LICENSE in the source distribution.
 *************************************************************************/
 
@@ -107,7 +107,7 @@ typedef struct ENTROPY_IMPL_t {
     More samples than this in a single bucket cannot plausibly be noise 
     ~2SD assuming gaussian. Conceded, that's a stretch but it's the best we have
     Note that we express this as a ratio because we COULD make the sample buffer
-    longer. We probably won't becuase the filter uses a lot of memory, but we could.
+    longer. We probably won't because the filter uses a lot of memory, but we could.
     Note that this isn't fine grained because of rounding. It's only done this 
     way because it makes this track TE_BUFLEN.
 */
@@ -142,7 +142,9 @@ typedef struct T_FILTER_t {
     unsigned char ov;       /* byte to merge noise sample LSbytes into */
     unsigned int low;       /* We had 'low' short delta's come in, implies sample interval is too short */
     const char *id;         /* ID tag */
-} T_FILTER;
+    char* memptr; /* Pointer to a buffer which is accessed to invoke noise events, see JENT 5.2.1 */
+    unsigned int memsize;
+} T_FILTER; /* Curently filter is disabled */
  
 
 

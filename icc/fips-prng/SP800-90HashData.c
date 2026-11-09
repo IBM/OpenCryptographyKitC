@@ -1,8 +1,8 @@
 /*************************************************************************
 // Copyright IBM Corp. 2023
 //
-// Licensed under the Apache License 2.0 (the "License").  You may not use
-// this file except in compliance with the License.  You can obtain a copy
+// Licensed under the Apache License 2.0 (the "License"). You may not use
+// this file except in compliance with the License. You can obtain a copy
 // in the file LICENSE in the source distribution.
 *************************************************************************/
 
@@ -91,7 +91,7 @@ static void Hash_df(SP800_90PRNG_Data_t *pctx,DS *in, unsigned char *out, unsign
   /* Debugging aid as much as anything, 
      T should be zero if not being used 
   */
-  memset(pctx->T,0,digestL);  
+  ICC_securezero(pctx->T,digestL);
   return;
 }
 
@@ -482,7 +482,7 @@ static const StringBuf SHA512_256IntEin =
        0x6a,0x7f,0x4f,0x99,0x67,0xbb,0x59,0xbd
      }
     };
-StringBuf SHA512_256IntNon = 
+static const StringBuf SHA512_256IntNon = 
   {0,16,
      {
        0x93,0xd0,0xca,0xac,0x1f,0x57,0xe7,0x9f,

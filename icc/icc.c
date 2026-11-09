@@ -1,15 +1,14 @@
 /*************************************************************************
 // Copyright IBM Corp. 2023
 //
-// Licensed under the Apache License 2.0 (the "License").  You may not use
-// this file except in compliance with the License.  You can obtain a copy
+// Licensed under the Apache License 2.0 (the "License"). You may not use
+// this file except in compliance with the License. You can obtain a copy
 // in the file LICENSE in the source distribution.
 *************************************************************************/
 
-/*************************************************************************
+/*
 // Description: Source file for the icc static library
-//
-*************************************************************************/
+*/
 
 /* IMPORTANT NOTE
    This file generates the ICC static stub - a static library. 
@@ -49,7 +48,7 @@ const char ICC_SCCSInfo[] =
     "@(#)FileVersion:      " ICC_PRODUCT_VERSION "\n"
     "@(#)LegalCopyright:   Licensed Materials - Property of IBM\n"
     "@(#)                  ICC\n"
-    "@(#)                  (C) Copyright IBM Corp. 2002,2018\n"
+    "@(#)                  (C) Copyright IBM Corp. 2002,2026\n"
     "@(#)                  All Rights Reserved. US Government Users\n"
     "@(#)                  Restricted Rights - Use, duplication or disclosure\n"
     "@(#)                  restricted by GSA ADP Schedule Contract with IBM Corp.\n"
@@ -177,7 +176,7 @@ static wchar_t * mywcsdup(const wchar_t *str) {
 static void ICC_strlcat(char *base,const char *append,unsigned int maxlen)
 {
   int l;
-  l = (int)maxlen - (int)strlen(base);
+  l = (int)maxlen - (int)strlen(base) -1;
   if( l > 1 ) {
     strncat(base,append,l);
   }
@@ -326,7 +325,7 @@ ICC_CTX *ICC_InitW(ICC_STATUS *status, const wchar_t *iccpath) {
       MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED, ICC_LIB_LOC, -1, wpath,
                           ICC_VALUESIZE - 1);
 
-      wcsncat(path, wpath,MAX_PATH);
+      wcsncat(path, wpath,MAX_PATH - strlen(path) -1);
       path[MAX_PATH-1] = L'\0';
       ICCGlobal.hICCLib = ICC_LoadLibraryW(path);
       if (NULL == ICCGlobal.hICCLib) {

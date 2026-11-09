@@ -9,7 +9,8 @@ ASM_OBJS = s390xcpuid.o s390xcap.o s390x.o s390x-mont.o s390x-gf2m.o \
 	c_enc.o bf_enc.o des_enc.o ghash-s390x.o \
 	threads_pthread.o async_posix.o \
 	chacha-s390x.o poly1305-s390x.o \
-	keccak1600-s390x.o ecp_s390x_nistp.o
+	keccak1600-s390x.o ecp_s390x_nistp.o \
+	hmac_s390x.o 
 
 # poly1305-s390x.o 
 

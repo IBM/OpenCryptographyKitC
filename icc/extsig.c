@@ -1,15 +1,14 @@
 /*************************************************************************
 // Copyright IBM Corp. 2023
 //
-// Licensed under the Apache License 2.0 (the "License").  You may not use
-// this file except in compliance with the License.  You can obtain a copy
+// Licensed under the Apache License 2.0 (the "License"). You may not use
+// this file except in compliance with the License. You can obtain a copy
 // in the file LICENSE in the source distribution.
 *************************************************************************/
 
-/*************************************************************************
+/*
 // Description: Checking own signature against external signature file
-//
-*************************************************************************/
+*/
 
 /* File format
 # Comments
@@ -122,11 +121,14 @@ int x2bin(char cin) {
   }
   return i;
 }
-static int Block2Bin(char *in, unsigned char *outb) {
+static int Block2Bin(char *in, unsigned char *outb, int outblen) {
   int h, l;
   int i;
   int signL;
   signL = (int)strlen(in) / 2;
+  if (signL > outblen) {
+    signL = outblen;
+  }
   /* Convert the rest of the buffer to binary */
   for (i = 0; i < signL; i++) {
     h = x2bin(in[i * 2]);
@@ -335,7 +337,7 @@ int CheckSig(FILE *sigfile, FILE *targ, EVP_PKEY *rsaPKey, int OnlySigFile) {
           ptr += 5; /* Skip past "SELF=" */
           bClean((char *)ptr);
           memset(signB, 0, sizeof(signB));
-          signL = Block2Bin((char *)ptr, signB);
+          signL = Block2Bin((char *)ptr, signB, (int)sizeof(signB));
           /* printf("signL = %d\n",signL); */
           HashCore(sigfile, pos, md_ctx, md);
 
@@ -368,7 +370,7 @@ int CheckSig(FILE *sigfile, FILE *targ, EVP_PKEY *rsaPKey, int OnlySigFile) {
           ptr += 5;
           bClean((char *)ptr);
           memset(signB, 0, sizeof(signB));
-          signL = Block2Bin((char *)ptr, signB);
+          signL = Block2Bin((char *)ptr, signB, (int)sizeof(signB));
           HashCore(targ, 0, md_ctx, md);
           evpRC = EVP_VerifyFinal(md_ctx, signB, signL, rsaPKey);
           if (1 != evpRC) {

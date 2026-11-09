@@ -1,8 +1,8 @@
 /*************************************************************************
 // Copyright IBM Corp. 2023
 //                   
-// Licensed under the Apache License 2.0 (the "License").  You may not use
-// this file except in compliance with the License.  You can obtain a copy
+// Licensed under the Apache License 2.0 (the "License"). You may not use
+// this file except in compliance with the License. You can obtain a copy
 // in the file LICENSE in the source distribution.
 *************************************************************************/
 
@@ -12,6 +12,7 @@
 //           the shared libraries. openssl is also a useful tool to have in the SDK.
 //                                                                            
 *************************************************************************/
+
 
 #if defined(_WIN32) || defined(_OS2__)
 #include "windows.h"
@@ -76,10 +77,7 @@ void *ICC_Calloc(
 		 int line)
 {
   void *ptr = NULL;
-  ptr = CRYPTO_malloc((n*sz),file,line);
-  if(NULL != ptr) {
-    memset(ptr,0,(n*sz));
-  }
+  ptr = CRYPTO_zalloc((n*sz),file,line);
   return ptr;
 }
 

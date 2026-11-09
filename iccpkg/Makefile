@@ -5,18 +5,16 @@
 # make OPSYS=<something>
 #
 
+default: all
+
 # Makefile needs to define this as relative path from Makefile's dir to the base of ICC source dir
 ICC_ROOT=..
 
 CONFIG = debug
 BUILD = developer
 
-include ../icc/VTAG.mk
-
-
-
-include ../icc/platforms.mk
-
+include $(ICC_ROOT)/icc/VTAG.mk
+include $(ICC_ROOT)/icc/platforms.mk
 
 
 # Version # of the old ICC
@@ -24,10 +22,11 @@ OLDVER = $(FVTAG)
 
 # Version # of the new ICC
 
-include ../icc/icc_defs.mk
-include ../icc/opensslver.mk
+include $(ICC_ROOT)/icc/icc_defs.mk
+include $(ICC_ROOT)/icc/opensslver.mk
 
 # GSKit-Crypto defs
+# defines JGSK_DIR and GSK_DIR ($(ICC_ROOT)/package/gskit_crypto)
 include gsk_crypto.mk
 
 ## Build specific definitions - file target etc.
@@ -40,8 +39,6 @@ include muppet.mk
 developer_CFLAGS = -DVTAG=$(VTAG) -DINSTDIR=\""$(GSK_GLOBAL)"\"
 OFFICIAL_CFLAGS = -DICC_OFFICIAL_BUILD $(developer_CFLAGS)
 
-
-
 ICCLIB		= $(STLPRFX)icc$(STLSUFX)
 
 NEW_ICC		= ../package
@@ -49,6 +46,13 @@ NEW_ICC		= ../package
 ZLIB_LIB 	= ../icc/$(STLPRFX)zlib$(STLSUFX)
 
 NEW_LIBICC	= $(SHLPRFX)icclib$(VTAG)$(SHLSUFX)
+
+ifeq ($(strip $(IS_FIPS)),)
+   MYICC = newicc
+else
+   MYICC = icc
+endif		
+
 
 # Sign tool for Microsoft Authenticode
 SIGN_COMMAND    = /build/build/scripts/signwindowsfile.ksh
@@ -113,6 +117,8 @@ TARGETS = runtime_setup Jruntime_setup \
 
 
 all:  $(TARGETS)
+
+
 
 
 include ../icc/zlib.mk

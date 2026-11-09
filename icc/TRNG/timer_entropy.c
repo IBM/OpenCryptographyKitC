@@ -10,6 +10,16 @@
 #include <stdlib.h>
 #include <fcntl.h>
 #include <string.h>
+
+#if defined(_WIN32)
+#include <io.h>
+#define read_open(x) _open(x, _O_RDONLY)
+#define close(x) _close(x)
+#else
+#include <fcntl.h>
+#include <unistd.h>
+#define read_open(x) open(x, O_RDONLY)
+#endif
 /* Gathering entropy from noise in software 
    In principle, we sample a counter when the processor has been dragged away to do other things and that should be random as seen from userspace.
    How do we determine that ?
@@ -40,27 +50,115 @@
 
 
 #include "TRNG/timer_entropy.h"
+#include <stdint.h>
+#include "disableopt.h"
 
-#if defined(HIGH_RES_TIMER)
-/* Ideally this should be in another module so it won't get optimized
-    but we also use this code JUST for the high res timer functions and
-    it gets pulled in as a dependency then
-*/
-#  if defined(_WIN32)
-#    pragma optimize("",off)
-#  endif
-int looper(volatile int *i,volatile int *j)
+#if defined(__MVS__) || defined(__ZOS__)
+#define inline __inline
+#endif
+#if defined(__xlC__) || defined(__IBMC__) || defined(__IBMCPP__)
+#define inline __inline
+#endif
+
+/* Jent start */
+static inline uint32_t uint32rotl(const uint32_t x, int k)
 {
+    return (x << k) | (x >> (32 - k));
+}
+
+static inline uint32_t xoshiro128starstar(uint32_t* s)
+{
+    const uint32_t result = uint32rotl(s[1] * 5, 7) * 9;
+    const uint32_t t = s[1] << 9;
+
+    s[2] ^= s[0];
+    s[3] ^= s[1];
+    s[1] ^= s[2];
+    s[0] ^= s[3];
+
+    s[2] ^= t;
+
+    s[3] = uint32rotl(s[3], 11);
+
+    return result;
+}
+
+/* Jent end */
+
+/*
+   Call the OS to open a non-existent file in read-only mode.
+   This will fail but waste some variable amount of time.
+*/
+static void open_bad_f()
+{
+    int badFd = read_open("/dev/jTeTS8/r5KVD/JYatv/ltG/kk43/SkgCdD/ptZ");
+    /* On the vanishingly remote possibility a user has a file on their system with
+       the name we have chosen for the non-existent file, close the open file */
+    if (-1 != badFd)
+    {
+        close(badFd);
+    }
+}
+
+static
+void do_delay(int d, char *mem, uint32_t* s, uint32_t m)
+{
+    /* derived from JENT code */
+    if (d & 4 && NULL != mem)
+    {
+        /* Take PRNG output to find the memory location to update. */
+        char* tmpval = mem +
+            (xoshiro128starstar(s) % m);
+
+        /*
+        * memory access: just add 1 to one byte,
+        * wrap at 255 -- memory access implies read
+        * from and write to memory location
+        */
+        *tmpval = (char)((*tmpval + 1) & 0xff);
+    }
+
+    if (d & 2) {
+        open_bad_f();
+    }
+}
+
+
+int looper(volatile int *i, volatile int *j, char d, char* memptr, unsigned int memsize, int useDelay)
+{
+    /* derived from JENT code */
+    union {
+        uint32_t u[4];
+        uint8_t b[sizeof(uint32_t) * 4];
+    } prngState = { .u = {0x8e93eec0, 0xce65608a, 0xa8d46b46, 0xe83cef69} };
+
+    if (useDelay & 4)
+    {
+         /*
+         * Mix the current data into prngState
+         *
+         * Any time you see a PRNG in a noise source, you should be concerned.
+         *
+         * The PRNG doesn’t directly produce the raw noise, it just adjusts the
+         * location being updated. The timing of the update is part of the raw
+         * sample. The main thing this process gets you isn’t better
+         * “per-update” timing, it gets you mostly independent “per-update”
+         * timing, so we can now benefit from the Central Limit Theorem!
+         */
+        int i;
+        for (i = 0; i < sizeof(prngState); i++) {
+            prngState.b[i] ^= d;
+        }
+    }
+
   int k = 0;
-  for( ; (*i) < (*j); (*i)++) k++;
+    for (; (*i) < (*j); (*i)++) {
+        k++;
+
+        do_delay(useDelay, memptr, prngState.u, memsize);
+    }
   return k;
 }
-#  if defined(_WIN32)
-#    pragma optimize("",on)
-#  endif
-#else
-extern int looper(volatile int *a,volatile int *b);
-#endif
 
 
 /*! @brief delay loop
@@ -373,21 +471,36 @@ unsigned long RdCTR_raw()
 }
 #endif
 
-int RdCtrBurst(unsigned long *buffer,unsigned int len, int localloops)
+/* Delay selection bit mask, 0 - no delay, 1 = close(-1), 2 = open_bad_f(), 4 = Jent */
+static int G_useDelay = 4;
+
+void setDelay(int d)
+{
+    G_useDelay = d;
+}
+
+int getDelay(void)
+{
+    return G_useDelay;
+}
+
+int RdCtrBurst(unsigned long *buffer,unsigned int len, int localloops, char* memptr, unsigned int memsize)
 {
    int rv = 0;
-   int i = 0;
-   volatile int k,l; /* Volatile so the compilers don't optimise the delay loop away */
+    unsigned int i = 0;
 
 #if defined(__ARMEL__) || defined(__ARMEB__) || defined(__aarch64__) 
     rv = armrd(buffer,len);
 #else
-    l = localloops;
     for (i = 0; i < len; i++)
     {
-        buffer[i] = RdCTR_raw() ; 
+        buffer[i] = RdCTR_raw();
+        /* we keep the looper since RNG tuning code expects changing the localloops will effect this function */
+        {
+           volatile int k, l = localloops; /* Volatile so the compilers don't optimise the delay loop away */
         k = 0;
-        looper(&k,&l);
+           looper(&k, &l, (buffer[i] >> shift) & 0xff, memptr, memsize, G_useDelay);
+        }
     }
     rv = len;
 #endif
@@ -412,6 +525,7 @@ int RdCtrBurst(unsigned long *buffer,unsigned int len, int localloops)
 #if !defined(SAMPLES)
 #define SAMPLES 512
 #endif
+#define CHKSHFT_SAMPLES 65536
 int shift_max = 0;
 int timer_ok = 0;
 
@@ -431,34 +545,37 @@ int Shift() {
     in the other bits we can't really recover anyway. Well we could but it'd
     need something like a circular shift each time to fix the bit distribution
 */
-static int checkShift(int lps,int shft)
+static int checkShift(int lps, int shft, char* memptr, unsigned int memsize)
 {
 	int i,i1;
 	volatile int j;
 	unsigned long X;
-	unsigned char smpl[512];
+	unsigned char smpl[SAMPLES];
 	unsigned long dist[8];
 	int prob = 0;
 
-	memset(smpl,0,512);
-#if defined(DEBUG_DUMP)
-	printf("Loops = %d shift = %d\n",lps,shft);
+	memset(smpl, 0, SAMPLES);
+    memset(dist, 0, sizeof(dist));
+
+#if defined(DEBUG_TRNG)
+	fprintf(fp_debug, "checkShift: Loops = %d shift = %d\n", lps, shft);
 #endif	
-    /* Note we read to a buffer because doing the processing inline
-       would change the sampling rate
-    */
-	for (i = 0; i < 65536; i+=512)
+
+    /* CHKSHFT_SAMPLES are collected and counted to help decide bias bits.*/
+	for (i = 0; i < CHKSHFT_SAMPLES; i+=SAMPLES)
 	{
-		memset(smpl,0,512);
-		for(i1 = 0; i1 < 512; i1++) {
+		memset(smpl, 0, SAMPLES);
+        /* Basically emulate RdCtrBurst */
+		for(i1 = 0; i1 < SAMPLES; i1++) {
 			X = (RdCTR_raw() >> shft);
 			j = 0;
-			looper(&j,&lps);
-			smpl[i1] = X & 0xff;
+            looper(&j, &lps, X & 0xff, memptr, memsize, G_useDelay); /* X & 0xff used as a dummy value to XOR into memory */
+			smpl[i1] = X & 0xff; /* Get the lowest byte from sample AFTER shifting */
 		}
-		memset(dist,0,sizeof(dist));
-		/* You can do it with a loop as well, this was just as easy */
-		for (i1 = 0; i1 < 512; i1++)
+
+        /* Counting the number of times a bit is 1.
+        Then we see if it is roughly 1 half the time, and 0 the other. */
+		for (i1 = 0; i1 < SAMPLES; i1++)
 		{
 			if (smpl[i1] & 1)
 				dist[0]++;
@@ -478,31 +595,32 @@ static int checkShift(int lps,int shft)
 				dist[7]++;
 		}
 	}
-
-#if defined(DEBUG_DUMP)	
-	printf("\n");
+#if defined(DEBUG_TRNG)
 	for (i = 0; i < 8; i++)
 	{
-		printf("%-3d %-5lu\t", i, dist[i]);
+		fprintf(fp_debug, "checkShift: %-3d %-5lu\t", i, dist[i]);
 
 	}
+    fprintf(fp_debug, "\n");
 #endif	
+
 	for (i = 0; i < 8; i++)
 	{
-		if (dist[i] < 128 )  /* Mostly 0 */
-		{ /* Badly biased Bit */
-			prob ++;
-		}
-		else if( dist[i] > (256+128) ) /* Mostly 1 case */
+        if (dist[i] < ((CHKSHFT_SAMPLES)/4) || dist[i] > ((CHKSHFT_SAMPLES/4) * 3) )  /* Mostly 0 or 1 */
 		{  
-			/* Badly biased Bit */
-			prob ++;
+            /* Badly biased bit */
+            prob++;
+        } else {
+                /* First non bias bit observed breaks the contiguous group, we don't shift further than that */
+                /* Only if previous bit was stuck, continue incrementing shift up to mid-way bits */
+                break;
 		}
 	}
-	return prob; /* Probably needs another shift */
+
+    return prob; /* Number of contiguous bits to shift by */
 }
 
-unsigned long CalcShift(int mn)
+unsigned long CalcShift(int mn, char* memptr, unsigned int memsize)
 {
     unsigned int i;
     int j = 0;
@@ -513,6 +631,7 @@ unsigned long CalcShift(int mn)
     long Xsum = 0, Xd = 0;
     int sarray[S_TRY];
     int val[16];
+    int rc = 0;
 
     if (ex_shift >= 0)
     {
@@ -550,7 +669,7 @@ unsigned long CalcShift(int mn)
                         if (XA[i] != XA[0])
                         {
                             timer_ok = 1;
-                            break;
+                            break; /* If there exists a XA sample which differs from XA[0] then break */
                         }
                     }
                 }
@@ -562,10 +681,8 @@ unsigned long CalcShift(int mn)
                     X |= X1;
                 }
 
-                /* if we KNOW we don't trust the low bits already we set mn to ignore at 
-	      least this many bits.
-	      s390 does "something funky" with that bit for example ...
-      */
+                /* if we KNOW we don't trust the low bits already we set mn to ignore at least this many bits.
+	                s390 does "something funky" with that bit for example ... */
                 for (i = mn; i < 16; i++)
                 {
                     /* Extra careful here, in some cases we have an unstuck lower bit */
@@ -582,11 +699,9 @@ unsigned long CalcShift(int mn)
 	      TBR vs instruction execution rate changes.
 	      That means the low n bits aren't random anymore, but aren't fixed either.
 	      We deal with this by down-shifting the clock until it's 
-	      "just ticking" relative to instruction rate.
-      */
+                    "just ticking" relative to instruction rate. */
                 /* Calculate the average clock stride per sample interval
-	      Allow for the fact that the clock can wrap
-      */
+                    Allow for the fact that the clock can wrap */
                 for (i = n = 0, Xsum = 0; i < SAMPLES - 1; i++)
                 {
                     Xd = XA[i + 1] - XA[i];
@@ -600,19 +715,15 @@ unsigned long CalcShift(int mn)
                         Xsum += Xd;
                     }
                 }
-                /* The TimeBase counter shouldn't wrap more than once, if it did this 
-	            fixup can't be done 
-	            Why 4 ?. Testing. We actually rely on time "mostly advancing" 
-	            in the code
-            */
+                /* The TimeBase counter shouldn't wrap more than once, if it did this fixup can't be done 
+                Why 4 ?. Testing. We actually rely on time "mostly advancing" in the code */
 #if defined(DEBUG_TRNG)
                 printf("Xsum = %ld, n = %d, wrap = %d delay = %d\n", Xsum, n, wrap, Xsum / (n + 1));
 #endif
                 if (wrap < 2)
                 {
                     /* Start with the average ticks/sample, work out how many times 
-	        we can shift before that's no data at all.
-	      */
+                    we can shift before that's no data at all. */
                     for (Xd = Xsum / n; Xd > 1 && shift_max < 16; Xd >>= 1)
                     {
                         shift_max++;
@@ -645,10 +756,10 @@ unsigned long CalcShift(int mn)
 
             free(XA);
         }
-        /* Final sanity check to try and deal with an erratic LSbit */
 
-        if(checkShift(1,shift)) {
-            shift++;
+        /* Test that bits in LSB are on or off roughly half the time. Rules out obvious bias. */
+        if(rc = checkShift(1, shift, memptr, memsize)) {
+            shift += rc;
         }
         
         if (shift > 16)

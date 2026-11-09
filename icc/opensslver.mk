@@ -20,7 +20,7 @@ OPENSSL_VER    = openssl-$(OPENSSL_BIN)
 # checked into source control. This option is used by iSeries/OS400 for Clearcase builds.
 
 # Where the source tree for OpenSSL will be
-OSSL_DIR       = ../$(OPENSSL_VER)$(EX_SUFFIX)
+OSSL_DIR       = $(ICC_ROOT)/$(OPENSSL_VER)$(EX_SUFFIX)
 
 # What file we use in the OpenSSL tree to trip a regen of the sources
 OSSL_TAG       = $(OSSL_DIR)/Makefile
@@ -33,6 +33,10 @@ OPENSSL_release_FLAG =
 OPENSSL_asan_FLAG = $(OPENSSL_debug_FLAG) -fsanitize=address
 OPENSSL__FLAG = ${OPENSSL_release_FLAG}
 
+#note Windows not using this OSSL_FLAGS - need to edit icc/platforms/$(OPENSSL_LIBVER)/$(OPSYS)_.mk
 # OpenSSL 1.1.x
-OSSL_FLAGS	= 	no-engine no-sctp no-idea no-rc5 no-whirlpool no-zlib enable-mdc2 enable-camellia enable-md2 no-seed \
-				$(OPENSSL_${CONFIG}_FLAG)
+ifeq ($(strip $(IS_FIPS)),)
+OSSL_FLAGS = no-engine no-sctp no-idea no-rc5 no-whirlpool no-zlib enable-mdc2 enable-camellia enable-md2 no-seed $(OPENSSL_${CONFIG}_FLAG)
+else
+OSSL_FLAGS = -DFIPS_MODE no-engine no-sctp no-idea no-rc5 no-whirlpool no-zlib enable-mdc2 enable-camellia enable-md2 no-seed $(OPENSSL_${CONFIG}_FLAG)
+endif

@@ -113,6 +113,7 @@ BASE_OBJS = \
    bn_exp2$(OBJSUFX) bn_gcd$(OBJSUFX) bn_gf2m$(OBJSUFX) bn_kron$(OBJSUFX) bn_lib$(OBJSUFX) bn_mod$(OBJSUFX) bn_mont$(OBJSUFX) bn_mul$(OBJSUFX) \
    bn_prime$(OBJSUFX) bn_x931p$(OBJSUFX) \
 	bn_print$(OBJSUFX) bn_rand$(OBJSUFX) bn_recp$(OBJSUFX) bn_shift$(OBJSUFX) bn_sqr$(OBJSUFX) bn_sqrt$(OBJSUFX) bn_word$(OBJSUFX) \
+   bn_rsa_fips186_4$(OBJSUFX) bn_const$(OBJSUFX) \
    bss_file$(OBJSUFX) bss_mem$(OBJSUFX) bss_null$(OBJSUFX) buf_err$(OBJSUFX) buffer$(OBJSUFX) \
    c_allc$(OBJSUFX) c_alld$(OBJSUFX) c_cfb64$(OBJSUFX) c_ecb$(OBJSUFX) c_ofb64$(OBJSUFX) c_skey$(OBJSUFX)  \
    cfb64ede$(OBJSUFX) cfb64enc$(OBJSUFX) cfb_enc$(OBJSUFX) cm_ameth$(OBJSUFX) cm_pmeth$(OBJSUFX) cmac$(OBJSUFX) \
@@ -146,6 +147,7 @@ BASE_OBJS = \
    rsa_asn1$(OBJSUFX) rsa_chk$(OBJSUFX) rsa_crpt$(OBJSUFX) rsa_depr$(OBJSUFX) rsa_err$(OBJSUFX) rsa_gen$(OBJSUFX) rsa_lib$(OBJSUFX) \
    rsa_none$(OBJSUFX) rsa_oaep$(OBJSUFX) rsa_pk1$(OBJSUFX) rsa_pmeth$(OBJSUFX) rsa_pss$(OBJSUFX) rsa_saos$(OBJSUFX) rsa_sign$(OBJSUFX) rsa_ssl$(OBJSUFX) \
    rsa_x931$(OBJSUFX) rsa_x931g$(OBJSUFX) \
+   rsa_sp800_56b_check$(OBJSUFX) rsa_sp800_56b_gen$(OBJSUFX) \
    set_key$(OBJSUFX)  \
    sha1dgst$(OBJSUFX)  sha256$(OBJSUFX) sha512$(OBJSUFX) t_pkey$(OBJSUFX) \
    t_x509$(OBJSUFX) tasn_dec$(OBJSUFX) tasn_enc$(OBJSUFX) tasn_fre$(OBJSUFX) tasn_new$(OBJSUFX) tasn_prn$(OBJSUFX) tasn_typ$(OBJSUFX) \

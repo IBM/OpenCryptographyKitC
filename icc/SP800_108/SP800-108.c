@@ -1,8 +1,8 @@
 /*************************************************************************
 // Copyright IBM Corp. 2023
 //
-// Licensed under the Apache License 2.0 (the "License").  You may not use
-// this file except in compliance with the License.  You can obtain a copy
+// Licensed under the Apache License 2.0 (the "License"). You may not use
+// this file except in compliance with the License. You can obtain a copy
 // in the file LICENSE in the source distribution.
 *************************************************************************/
 
@@ -197,30 +197,48 @@ int KDF_CTR_HMAC( void *x,
   unsigned char IA[4];
   unsigned char LA[4];
   unsigned int len = 0;
+  int md_size_i;
   unsigned int md_size = 0;
   unsigned char tmp[64]; /* the largest possible MAC using SHA512 */
   unsigned int bytes = L;
 
-  md_size = EVP_MD_size(md); 
-  n = L/md_size;
+  /* Validate digest before any use */
+  if (md == NULL) {
+      return -1;
+  }
+  md_size_i = EVP_MD_size(md);
+  if (md_size_i <= 0 || md_size_i > (int)sizeof(tmp)) {
+      return -1;      /* nonsensical digest size */
+  }
+  md_size = (unsigned int)md_size_i;
 
-  uint2BS(L*8,LA);  
-  if(n <= 0xffffffffL && md != NULL) {
+  /* Guard against L*8 overflow in the [L] field */
+  if (L > (UINT_MAX / 8)) {
+      return -1;
+  }
+  uint2BS(L*8,LA);
+
+  n = L/md_size;
+  if (n > 0xffffffffL) {
+      return -1;
+  }
+
+  {
     hctx = HMAC_CTX_new();
     if(NULL != hctx) {
       uint2BS(i,IA);
-      while( bytes > 0 ) {      
-	my_HMAC_Init(hctx,Ki,Kilen,md);
-	HMAC_Update(hctx,IA,4);
-	HMAC_Update(hctx,Label,Llen);
-	HMAC_Update(hctx,C00,1);
-	HMAC_Update(hctx,Context,Clen);
-	HMAC_Update(hctx,LA,4);
-	HMAC_Final(hctx,tmp,&len);
+      while (bytes > 0) {
+          my_HMAC_Init(hctx, Ki, Kilen, md);
+          HMAC_Update(hctx, IA, 4);
+          HMAC_Update(hctx, Label, Llen);
+          HMAC_Update(hctx, C00, 1);
+          HMAC_Update(hctx, Context, Clen);
+          HMAC_Update(hctx, LA, 4);
+          HMAC_Final(hctx, tmp, &len);
 	HMAC_CTX_cleanup(hctx);
 	j = (bytes > md_size) ? md_size : bytes;
-	memcpy(K0,tmp,j);
-	K0 += md_size;
+          memcpy(K0, tmp, j);
+          K0 += md_size;
 	bytes -= j;  
 	i++;
       }
@@ -228,8 +246,6 @@ int KDF_CTR_HMAC( void *x,
     } else {
       rv = -1;
     }
-  } else {
-    rv = -1;
   }
 
   return rv;
@@ -264,32 +280,50 @@ int KDF_FB_HMAC(void *x,
   unsigned char IA[4];
   unsigned char LA[4];
   unsigned int len = 0;
+  int md_size_i;
   unsigned int md_size = 0;
   unsigned char tmp[64]; /* the largest possible MAC using SHA512 */
   unsigned int bytes = L;
   
-  md_size = EVP_MD_size(md);
-  n = L/md_size;
+  /* Validate digest before any use */
+  if (md == NULL) {
+      return -1;
+  }
+  md_size_i = EVP_MD_size(md);
+  if (md_size_i <= 0 || md_size_i > (int)sizeof(tmp)) {
+      return -1;      /* nonsensical digest size */
+  }
+  md_size = (unsigned int)md_size_i;
 
-  uint2BS(L*8,LA);
+  /* Guard against L*8 overflow in the [L] field */
+  if (L > (UINT_MAX / 8)) {
+      return -1;
+  }
+  uint2BS(L*8, LA);
+
+  n = L/md_size;
+  if (n > 0xffffffffL) {
+      return -1;
+  }
+
   memset(tmp,0,sizeof(tmp));
-  if(n <= 0xffffffffL && md != NULL) {
+  {
     hctx = HMAC_CTX_new();
     if(NULL != hctx) {
-      while(bytes > 0) {      
-	uint2BS(i,IA);
-	my_HMAC_Init(hctx,Ki,Kilen,md);
-	HMAC_Update(hctx,tmp,md_size);
-	HMAC_Update(hctx,IA,4);
-	HMAC_Update(hctx,Label,Llen);
-	HMAC_Update(hctx,C00,1);
-	HMAC_Update(hctx,Context,Clen);
-	HMAC_Update(hctx,LA,4);
-	HMAC_Final(hctx,tmp,&len);
+        while (bytes > 0) {
+            uint2BS(i, IA);
+            my_HMAC_Init(hctx, Ki, Kilen, md);
+            HMAC_Update(hctx, tmp, md_size);
+            HMAC_Update(hctx, IA, 4);
+            HMAC_Update(hctx, Label, Llen);
+            HMAC_Update(hctx, C00, 1);
+            HMAC_Update(hctx, Context, Clen);
+            HMAC_Update(hctx, LA, 4);
+            HMAC_Final(hctx, tmp, &len);
 	HMAC_CTX_cleanup(hctx);
 	j = (bytes > md_size) ? md_size : bytes;
-	memcpy(K0,tmp,j);
-	K0 += md_size;
+            memcpy(K0, tmp, j);
+            K0 += md_size;
 	bytes -= j;
 	i++;
       }
@@ -297,8 +331,6 @@ int KDF_FB_HMAC(void *x,
     } else {
       rv = -1;
     }
-  } else {
-    rv = -1;
   }
 
   return rv;
@@ -317,45 +349,64 @@ int KDF_FB_HMAC(void *x,
   @return 1 on success, 0 on failure, -1 "something bad happened"
   (invalid input, invalid md_ctx etc)
 */
-int KDF_DP_HMAC(void *x,
-		unsigned char *Ki,unsigned int Kilen,
-		unsigned char *Label, unsigned int Llen,
-		unsigned char *Context, unsigned int Clen,
-		unsigned char *K0,unsigned int L
-		)
+int KDF_DP_HMAC(void* x,
+    unsigned char* Ki, unsigned int Kilen,
+    unsigned char* Label, unsigned int Llen,
+    unsigned char* Context, unsigned int Clen,
+    unsigned char* K0, unsigned int L
+)
 {
-  const EVP_MD *md = (const EVP_MD*)x;
+    const EVP_MD* md = (const EVP_MD*)x;
   int rv = 1;
   long n;
   unsigned long i = 1;
   unsigned long j = 0; 
-  HMAC_CTX *hctx = NULL;
+    HMAC_CTX* hctx = NULL;
   unsigned char IA[4];
   unsigned char LA[4];
   unsigned int len = 0;
+    int md_size_i;
   unsigned int md_size = 0;
   unsigned char tmp[64]; /* the largest possible MAC using SHA512 */
   unsigned char tmpA[64];
   unsigned int bytes = L;
 
-  md_size = EVP_MD_size(md);
-  n = L/md_size;
+    /* Validate digest before any use */
+    if (md == NULL) {
+        return -1;
+    }
+    md_size_i = EVP_MD_size(md);
+    if (md_size_i <= 0 || md_size_i > (int)sizeof(tmp)) {
+        return -1;      /* nonsensical digest size */
+    }
+    md_size = (unsigned int)md_size_i;
 
-  uint2BS(L*8,LA);
+    /* Guard against L*8 overflow in the [L] field */
+    if (L > (UINT_MAX / 8)) {
+        return -1;
+    }
+    uint2BS(L*8,LA);
+
+  n = L/md_size;
+    if (n > 0xffffffffL) {
+        return -1;
+    }
+
   memset(tmp,0,sizeof(tmp));
   memset(tmpA,0,sizeof(tmpA));
-  if(n <= 0xffffffffL && md != NULL) {
+    {
     hctx = HMAC_CTX_new();
-    if(NULL != hctx) {
-      while( bytes > 0 ) {  
+        if (NULL != hctx) {
+            while (bytes > 0) {
 	uint2BS(i,IA); 
 	my_HMAC_Init(hctx,Ki,Kilen,md);
-	if(i == 1) { /* A(0) = Label || 0x00 || Context || [L] */
+                if (i == 1) { /* A(0) = Label || 0x00 || Context || [L] */
 	  HMAC_Update(hctx,Label,Llen);
 	  HMAC_Update(hctx,C00,1);
 	  HMAC_Update(hctx,Context,Clen);
 	  HMAC_Update(hctx,LA,4);
-	} else { /* A(i) = PRF(Ki,A(i-1) */
+                }
+                else { /* A(i) = PRF(Ki,A(i-1) */
 	  HMAC_Update(hctx,tmpA,md_size);
 	}
 	HMAC_Final(hctx,tmpA,&len);
@@ -373,15 +424,16 @@ int KDF_DP_HMAC(void *x,
 
 	j = (bytes > md_size) ? md_size : bytes;
 	memcpy(K0,tmp,j);
-	K0 += md_size;
+                K0 += md_size;
 	bytes -= j;    
 	i++;
       }
       HMAC_CTX_free(hctx);
     }
-  } else {
+        else {
     rv = -1;
   }
+    }
 
   return rv;
 }
@@ -429,7 +481,7 @@ int KDF_CTR_CMAC(void *x,
       cctx = CMAC_CTX_new();
       if(NULL != cctx) {
 	uint2BS(i,IA);
-	while( bytes > 0 ) {      
+        while( bytes > 0 ) {
 	  my_CMAC_Init(cctx,cipher,Ki,Kilen);
 	  CMAC_Update(cctx,IA,4);
 	  CMAC_Update(cctx,Label,Llen);
@@ -754,8 +806,8 @@ const KDF *SP800_108_get_KDFbyname(ICClib *pcb,char *kdfname)
     for(i = 0 ;NULL != KDFS[i].name ; i++) {
       if(strcasecmp(KDFS[i].name,kdfname) == 0) {
         if(-1 != KDFS[i].tested) {
-          if( !fips || KDFS[i].fips ) { /* Restrict algs in FIPS mode */
-            is_fips = 1;
+          { /* Allow algs in FIPS mode */
+            is_fips = KDFS[i].fips;
             switch(KDFS[i].mode) {
             case IS_HMAC:
               /* Initialize now if it wasn't previously done */

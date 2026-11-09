@@ -1,14 +1,13 @@
-/*************************************************************************
-// Copyright IBM Corp. 2023
-//                                                                           
-// Licensed under the Apache License 2.0 (the "License").  You may not use
-// this file except in compliance with the License.  You can obtain a copy
-// in the file LICENSE in the source distribution.
-*************************************************************************/
+/*
+ Copyright IBM Corp. 2023
+
+ Licensed under the Apache License 2.0 (the "License"). You may not use
+ this file except in compliance with the License. You can obtain a copy
+ in the file LICENSE in the source distribution.
+*/
 
 /*************************************************************************
-// Description: Source for the icclib shared library                         
-//                                                                           
+ Description: Source for the icclib shared library
 *************************************************************************/
 
 #if defined(__MVS__)
@@ -21,6 +20,11 @@
 #include "loaded.h" 
 #include <stdlib.h>
 #include <stdio.h>
+
+#if defined (__APPLE__)
+#define __STDC_WANT_LIB_EXT1__ 1
+#endif
+
 #include <string.h>
 #include <ctype.h>
 
@@ -68,60 +72,62 @@ unsigned long d[10];
 #   define strdup(x) _strdup(x)
 #endif
 
-extern int ex_loops,ex_shift;
+extern int ex_loops, ex_shift, ex_memsize, ex_osr;
 
 extern int Shift();
 extern unsigned int Loops();
 extern int isFipsTrng(TRNG_TYPE t);
 
 /* Prototype for the FIPS compliant keygen function */
+extern int fips_rsa_builtin_keygen(RSA *rsa, int bits,int primes, BIGNUM *e_value,BN_GENCB *cb);
 
-int fips_rsa_builtin_keygen(RSA *rsa, int bits,int primes, BIGNUM *e_value,BN_GENCB *cb);
 /* Forward declarations for redirected functions 
   Note that in all these interfaces pcb is non-NULL just to get here
 */
 
-DH * my_DH_generate_parameters(ICClib *pcb,int bits, int generator,void (*callback)(int,int,void *),void *cb_arg);
-RSA *  my_RSA_generate_key(ICClib *pcb,int bits, unsigned long e,void (*callback)(int,int,void *),void *cb_arg);
-int my_RSA_generate_key_ex(ICClib *pcb,RSA *rsa, int bits, BIGNUM *e,void *callback);
-DSA *my_DSA_generate_parameters(ICClib *pcb,int bits,unsigned char *seed,int seed_len,int *counter_ret, unsigned long *h_ret,void (*callback)(int, int, void *),void *cb_arg);
-int my_DSA_generate_key(ICClib *pcb,DSA *a);
-EC_KEY *my_EC_KEY_new_by_curve_name(ICClib *pcb,int nid);
-int my_EC_KEY_generate_key(ICClib *pcb,EC_KEY *eckey);
-PRNG * my_get_RNGbyname(ICClib *pcb,const char *algname);
-int my_EVP_DigestInit(EVP_MD_CTX *ctx,const EVP_MD *md);
-int my_EVP_DigestFinal(EVP_MD_CTX *ctx,unsigned char *md,unsigned int *size);
+static DH * my_DH_generate_parameters(ICClib *pcb,int bits, int generator,void (*callback)(int,int,void *),void *cb_arg);
+static RSA *  my_RSA_generate_key(ICClib *pcb,int bits, unsigned long e,void (*callback)(int,int,void *),void *cb_arg);
+static int my_RSA_generate_key_ex(ICClib *pcb,RSA *rsa, int bits, BIGNUM *e,void *callback);
+static DSA *my_DSA_generate_parameters(ICClib *pcb,int bits,unsigned char *seed,int seed_len,int *counter_ret, unsigned long *h_ret,void (*callback)(int, int, void *),void *cb_arg);
+static int my_DSA_generate_key(ICClib *pcb,DSA *a);
+static EC_KEY *my_EC_KEY_new_by_curve_name(ICClib *pcb,int nid);
+static int my_EC_KEY_generate_key(ICClib *pcb,EC_KEY *eckey);
+/* from SP800-90.c */
+extern PRNG * my_get_RNGbyname(ICClib *pcb,const char *algname);
+static int my_EVP_DigestInit(EVP_MD_CTX *ctx,const EVP_MD *md);
+static int my_EVP_DigestFinal(EVP_MD_CTX *ctx,unsigned char *md,unsigned int *size);
 
-int my_RAND_bytes(unsigned char *buf,int n);
-int my_EVP_PKEY_encrypt_new(EVP_PKEY_CTX *ctx, 
+static int my_RAND_bytes(unsigned char *buf,int n);
+static int my_EVP_PKEY_encrypt_new(EVP_PKEY_CTX *ctx, 
 			    unsigned char *out, size_t *outlen,
 			    const unsigned char *in, size_t inlen);
-int my_EVP_PKEY_decrypt_new(EVP_PKEY_CTX *ctx, 
+static int my_EVP_PKEY_decrypt_new(EVP_PKEY_CTX *ctx, 
 			    unsigned char *out, size_t *outlen,
 			    const unsigned char *in, size_t inlen);
-int my_EVP_PKEY_keygen(ICClib *pcb, EVP_PKEY_CTX *cctx, EVP_PKEY **pk);
-int my_EVP_CIPHER_CTX_free(EVP_CIPHER_CTX * x);
-int my_EVP_DigestSignInit(ICClib *pcb,EVP_MD_CTX *ctx, EVP_PKEY_CTX **pctx,const EVP_MD *type, ENGINE *e, EVP_PKEY *pkey);
-int my_EVP_DigestVerifyInit(ICClib *pcb,EVP_MD_CTX *ctx, EVP_PKEY_CTX **pctx,const EVP_MD *type, ENGINE *e, EVP_PKEY *pkey);
-int my_SP800_38F_KW(ICClib *pcb,unsigned char *in, int inl, unsigned char *out, int *outl, unsigned char *key, int kl,unsigned int flags) ;
-int my_EVP_PKEY_sign_init(ICClib *pcb,EVP_PKEY_CTX *pctx);
-int my_EVP_PKEY_verify_init(ICClib *pcb,EVP_PKEY_CTX *pctx);
-void my_GHASH(AES_GCM_CTX *gcm_ctx,unsigned char *H,unsigned char *Hash,unsigned char *data,unsigned long datalen);
-int my_EVP_PKEY_derive_init(ICClib *pcb,EVP_PKEY_CTX *ctx);
-int my_RSA_sign(ICClib *pcb,int type, const unsigned char *dgst, int dlen, unsigned char *sig, unsigned int *siglen, RSA *rsa);
-int my_RSA_verify(ICClib *pcb,int type, const unsigned char *dgst, int dgst_len, const unsigned char *sigbuf, int siglen, RSA *rsa);
-int my_DH_generate_key(ICClib *pcb,DH *dh);
-int my_RSA_private_decrypt(ICClib *pcb,int flen, const unsigned char *from,unsigned char *to, RSA *rsa,int padding);
-int my_RSA_public_encrypt(ICClib *pcb,int flen, unsigned char *from,unsigned char *to, RSA *rsa,int padding);
-int my_RSA_private_encrypt(ICClib *pcb,int flen, const unsigned char *from,unsigned char *to, RSA *rsa,int padding);
-int my_RSA_public_decrypt(ICClib *pcb,int flen, unsigned char *from,unsigned char *to, RSA *rsa,int padding);
-int my_DH_compute_key(ICClib *pcb,unsigned char *key,BIGNUM *pub_key,DH *dh);
-int my_DH_compute_key_padded(ICClib *pcb,unsigned char *key,BIGNUM *pub_key,DH *dh);
-int my_PKCS5_PBKDF2_HMAC(ICClib *pcb,const char *pass, int passlen, const unsigned char *salt, int saltlen, int iters, const EVP_MD *digest, int keylen, unsigned char *out);
-unsigned char *HKDF_Extract(ICClib *pcb,const EVP_MD *evp_md,const unsigned char *salt, size_t salt_len,const unsigned char *key, size_t key_len,unsigned char *prk, size_t *prk_len);
-unsigned char *HKDF_Expand(ICClib *pcb,const EVP_MD *evp_md,const unsigned char *prk, size_t prk_len,const unsigned char *info, size_t info_len,unsigned char *okm, size_t okm_len);
-unsigned char *HKDF(ICClib *pcb,const EVP_MD *evp_md,const unsigned char *salt, size_t salt_len,const unsigned char *key, size_t key_len,const unsigned char *info, size_t info_len,unsigned char *okm, size_t okm_len);
-int dsa_paramgen_check_g(DSA *dsa);
+static int my_EVP_PKEY_keygen(ICClib *pcb, EVP_PKEY_CTX *cctx, EVP_PKEY **pk);
+static int my_EVP_CIPHER_CTX_free(EVP_CIPHER_CTX * x);
+static int my_EVP_DigestSignInit(ICClib *pcb,EVP_MD_CTX *ctx, EVP_PKEY_CTX **pctx,const EVP_MD *type, ENGINE *e, EVP_PKEY *pkey);
+static int my_EVP_DigestVerifyInit(ICClib *pcb,EVP_MD_CTX *ctx, EVP_PKEY_CTX **pctx,const EVP_MD *type, ENGINE *e, EVP_PKEY *pkey);
+static int my_SP800_38F_KW(ICClib *pcb,unsigned char *in, int inl, unsigned char *out, int *outl, unsigned char *key, int kl,unsigned int flags) ;
+static int my_EVP_PKEY_sign_init(ICClib *pcb,EVP_PKEY_CTX *pctx);
+static int my_EVP_PKEY_verify_init(ICClib *pcb,EVP_PKEY_CTX *pctx);
+static void my_GHASH(AES_GCM_CTX *gcm_ctx,unsigned char *H,unsigned char *Hash,unsigned char *data,unsigned long datalen);
+static int my_EVP_PKEY_derive_init(ICClib *pcb,EVP_PKEY_CTX *ctx);
+static int my_RSA_sign(ICClib *pcb,int type, const unsigned char *dgst, int dlen, unsigned char *sig, unsigned int *siglen, RSA *rsa);
+static int my_RSA_verify(ICClib *pcb,int type, const unsigned char *dgst, int dgst_len, const unsigned char *sigbuf, int siglen, RSA *rsa);
+static int my_DH_generate_key(ICClib *pcb,DH *dh);
+static int my_RSA_private_decrypt(ICClib *pcb,int flen, const unsigned char *from,unsigned char *to, RSA *rsa,int padding);
+static int my_RSA_public_encrypt(ICClib *pcb,int flen, unsigned char *from,unsigned char *to, RSA *rsa,int padding);
+static int my_RSA_private_encrypt(ICClib *pcb,int flen, const unsigned char *from,unsigned char *to, RSA *rsa,int padding);
+static int my_RSA_public_decrypt(ICClib *pcb,int flen, unsigned char *from,unsigned char *to, RSA *rsa,int padding);
+static int my_DH_compute_key(ICClib *pcb,unsigned char *key,BIGNUM *pub_key,DH *dh);
+static int my_DH_compute_key_padded(ICClib *pcb,unsigned char *key,BIGNUM *pub_key,DH *dh);
+static int my_PKCS5_PBKDF2_HMAC(ICClib *pcb,const char *pass, int passlen, const unsigned char *salt, int saltlen, int iters, const EVP_MD *digest, int keylen, unsigned char *out);
+/* note duplication in my_HKDF_Expand() */
+static unsigned char* HKDF_Extract(ICClib* pcb, const EVP_MD* evp_md, const unsigned char* salt, size_t salt_len, const unsigned char* key, size_t key_len, unsigned char* prk, size_t* prk_len);
+static unsigned char* HKDF_Expand(ICClib* pcb, const EVP_MD* evp_md, const unsigned char* prk, size_t prk_len, const unsigned char* info, size_t info_len, unsigned char* okm, size_t okm_len);
+static unsigned char* HKDF(ICClib* pcb, const EVP_MD* evp_md, const unsigned char* salt, size_t salt_len, const unsigned char* key, size_t key_len, const unsigned char* info, size_t info_len, unsigned char* okm, size_t okm_len);
+static int dsa_paramgen_check_g(DSA *dsa);
 
 /* From extsig.c */
 int CheckSig(FILE *fin,FILE *targ,EVP_PKEY *rsaPKey,int SigFileOnly);
@@ -130,7 +136,7 @@ int ReadConfigItems(FILE *fin, char *tweaks[], int n);
 EVP_PKEY *get_pubkey(ICC_STATUS *stat);
 extern int iccRSAKeyPair(ICClib *pcb, RSA *temp);
 
-const BIGNUM *DH_get_PrivateKey (const DH * dh);
+static const BIGNUM *DH_get_PrivateKey (const DH * dh);
 extern int TwoKeyDes3(int);
 /* API to tell OpenSSL it's in FIPS mode
    Use to conditionally disable some (expensive) tests
@@ -148,17 +154,18 @@ extern int FIPS_mode_set(int);
 #undef EVP_CIPHER_CTX_cleanup
 #undef EVP_CIPHER_CTX_flags
 
-int EVP_MD_CTX_init(EVP_MD_CTX *ctx);
-int EVP_MD_CTX_cleanup(EVP_MD_CTX *ctx);
-int EVP_CIPHER_CTX_init(EVP_CIPHER_CTX *ctx);
-int EVP_CIPHER_CTX_cleanup(EVP_CIPHER_CTX *ctx);
-int EVP_CIPHER_CTX_flags(EVP_CIPHER_CTX *ctx);
+static int EVP_MD_CTX_init(EVP_MD_CTX *ctx);
+static int EVP_MD_CTX_cleanup(EVP_MD_CTX *ctx);
+static int EVP_CIPHER_CTX_init(EVP_CIPHER_CTX *ctx);
+static int EVP_CIPHER_CTX_cleanup(EVP_CIPHER_CTX *ctx);
+static int EVP_CIPHER_CTX_flags(EVP_CIPHER_CTX *ctx);
 
-int RSA_FixEncodingZeros(RSA* pri, const RSA* pub, int allowDisableBlinding);
-int InternalIntegrityCheck(ICClib *pcb,ICC_STATUS *status,int partial);
-int IntegrityCheck(ICClib *pcb,ICC_STATUS *status);
+static int RSA_FixEncodingZeros(RSA* pri, const RSA* pub, int allowDisableBlinding);
+static int InternalIntegrityCheck(ICClib *pcb,ICC_STATUS *status,int partial);
+static int IntegrityCheck(ICClib *pcb,ICC_STATUS *status);
 
-void ALT_Final(); /* Clean up the fd used for /dev/random */
+/* from TRNG_ALT.c */
+extern void ALT_Final(); /* Clean up the fd used for /dev/random */
 /*
  *-----------------------------------------------------------------------------
  * INCLUDED source. 
@@ -231,11 +238,13 @@ typedef void (*LockFunc) (int, int, const char *, int);
 /*! @brief prototype for a pointer to a function to return a unqiue thread ID */
 typedef unsigned long (*ThreadIdFunc) (void);
 
+/* from icc.c */
 void *ICC_Malloc(size_t sz, const char *file, int line);
 void *ICC_Calloc(size_t n, size_t sz,const char *file, int line);
 void *ICC_Realloc(void *ptr,size_t sz,const char *file, int line);
 void ICC_Free(void *ptr);
-void CleanupSP800_90(void);
+/* from SP800-90.c */
+extern void CleanupSP800_90(void);
 
 
 static char *no_excluded_rngs = "";
@@ -283,10 +292,28 @@ static void OpenSSL_Cleanup();
 */
 static void iccLoadErr(ICC_STATUS* status);
 
-void OPENSSL_cpuid_setup(void);
+extern void OPENSSL_cpuid_setup(void);
 
 
 /* Legacy, from when these could be set at startup */
+
+/*!
+  @brief
+  OpenSSL calloc function
+  @param n the number of blocks to allocate
+  @param sz the size of each block
+  @param file __FILE__, file where the allocation was requested
+  @param line __LINE__, line where the allocation was requested
+  @return NULL or the newly allocated block
+  @note OpenSSL doesn't provide a calloc, so we call it's zalloc which does what calloc does (zeros the buffer)
+*/
+void* CRYPTO_calloc(int n, int sz, const char* file, int line)
+{
+   void* tmp = NULL;
+   tmp = CRYPTO_zalloc(n * sz, file, line);
+   return tmp;
+}
+
 
 void *ICC_Malloc(size_t sz, const char *file, int line)
 {
@@ -300,7 +327,7 @@ void *ICC_Calloc(size_t n, size_t sz,const char *file, int line)
 {
   void *ptr = NULL;
 
-  ptr = CRYPTO_calloc(n,sz,file,line);
+  ptr = CRYPTO_calloc((int)n,(int)sz,file,line);
 
 
   return ptr;
@@ -318,6 +345,7 @@ void ICC_Free(void *ptr)
 {
     CRYPTO_free(ptr,__FILE__,__LINE__);       
 }
+
 static unsigned char x2bin(unsigned char b)
 {
   unsigned char c = 0;
@@ -326,7 +354,7 @@ static unsigned char x2bin(unsigned char b)
   } else if (b >= 'a' && b <= 'f') {
     c = (b - 'a') + 10;
   }  else if (b >= 'A' && b <= 'F') {
-    c = (b - 'F') + 10;
+    c = (b - 'A') + 10;
   }    
   return c;
 
@@ -513,6 +541,7 @@ static void EnvVars()
   if(NULL != tmp) {
     i = atoi(tmp);
     ex_shift = i;
+    MARK("ICC_SHIFT:", tmp);
   }
   /*! \EnvVar ICC_LOOPS
     - Manual setting of RNG modes
@@ -525,7 +554,65 @@ static void EnvVars()
   if(NULL != tmp) {
     i = atoi(tmp);
     ex_loops = i;
+    MARK("ICC_LOOPS:", tmp);
   }
+
+#if 0 /* disabled for FIPS */
+  /*! \EnvVar ICC_TRNG_FIPS_MEMSIZE
+    - Manual setting of RNG modes
+    - May be required to bypass problems on virtualized systems/new hardware
+    - Set JENT memory access buffer size for entropy jitter delay
+    - FIPS mode: Yes
+    - Use only under direction from GSkit L3
+  */
+
+  tmp = getenv("ICC_TRNG_FIPS_MEMSIZE");
+  if(NULL != tmp) {
+    i = atoi(tmp);
+    if (i > 0) {
+      ex_memsize = i;
+      MARK("ICC_TRNG_FIPS_MEMSIZE:", tmp);
+    } else {
+      MARK("ICC_TRNG_FIPS_MEMSIZE Invalid memory size", tmp);
+    }
+  }
+#endif
+
+  /*! \EnvVar ICC_TRNG_FIPS_OSR
+    - Set the oversampling rate to input more data into the conditioner
+    - FIPS mode: Yes
+    - Use only under direction from GSkit L3
+  */
+
+  tmp = getenv("ICC_TRNG_FIPS_OSR");
+  if(NULL != tmp) {
+    i = atoi(tmp);
+    if (i >= ICC_TRNG_FIPS_OSR_MIN) {
+      ex_osr = i;
+      MARK("ICC_TRNG_FIPS_OSR:", tmp);
+    } else {
+      MARK("ICC_TRNG_FIPS_OSR Invalid value:", tmp);
+    }
+  }
+
+#if 0 /* disabled for FIPS */
+  /*! \EnvVar ICC_TRNG_FIPS_DELAY
+    - Manual setting of TRNG loop delay
+    - Delay selection bit mask, 0 - no delay, 2 = open_bad_f(), 4 = Jent
+    - May be required to bypass problems on virtualized systems/new hardware
+    - FIPS mode: Yes
+    - Use only under direction from GSkit L3
+  */
+
+  tmp = getenv("ICC_TRNG_FIPS_DELAY");
+  if (NULL != tmp) {
+      void setDelay(int d);
+      i = atoi(tmp);
+      setDelay(i);
+      MARK("ICC_TRNG_FIPS_DELAY:", tmp);
+  }
+#endif
+
   /*! \EnvVar ICC_ALLOW_2KEY3DES
     - Allows 3 DES with 2 keys the same
     - FIPS mode: No
@@ -566,11 +653,11 @@ static void EnvVars()
     } else if(0 == strcmp(tmp,"stderr")) {
       errorfile = stderr;
     }
+
   }
 
   OUT();
 }
-
 void SetParams(char *params[],int n)
 {
   int i ;
@@ -604,6 +691,26 @@ void SetParams(char *params[],int n)
         if (0 == strncmp(params[i], "ICC_LOOPS", strlen("ICC_LOOPS"))) {
           ex_loops = atoi(ptr);
         }
+#if 0
+        if (0 == strncmp(params[i], "ICC_TRNG_FIPS_MEMSIZE", strlen("ICC_TRNG_FIPS_MEMSIZE"))) {
+            ex_memsize = atoi(ptr);
+        }
+        if (0 == strncmp(params[i], "ICC_TRNG_FIPS_DELAY", strlen("ICC_TRNG_FIPS_DELAY"))) {
+            int n = atoi(ptr);
+            setDelay(n);
+        }
+#endif
+        if (0 == strncmp(params[i], "ICC_TRNG_FIPS_OSR", strlen("ICC_TRNG_FIPS_OSR"))) {
+            int n = atoi(ptr);;
+            if (n >= ICC_TRNG_FIPS_OSR_MIN) {
+                ex_osr = n;
+                MARK("ICC_TRNG_FIPS_OSR:", ptr);
+            }
+            else {
+                MARK("ICC_TRNG_FIPS_OSR Invalid value:", ptr);
+            }
+        }
+
 #if (NON_FIPS_ICC == 1)
         if (0 == strncmp(params[i], "ICC_RUN_POST", strlen("ICC_RUN_POST"))) {
           config_run_post = atoi(ptr);
@@ -739,14 +846,18 @@ static void LoadTables(ICC_STATUS *status)
 */
 void OpenCheckFiles(FILE **sigfile,FILE **self) 
 {
-
-  static char tmppath[MAX_PATH+1];
+  char *tmppath = NULL;
   char *ptr = NULL;
 #if defined(_WIN32)
-  static wchar_t tmppathW[MAX_PATH+1];
+  wchar_t *tmppathW = NULL;
   wchar_t *wptr = NULL;
 #endif
   IN();
+
+  tmppath = calloc(MAX_PATH + 1, sizeof(char));
+#if defined(_WIN32)
+  tmppathW = calloc(MAX_PATH + 1, sizeof(wchar_t));
+#endif
 
   FUNCTION_NAME(MYNAME,_path)(tmppath,MAX_PATH-20);
   strncat(tmppath,"/",MAX_PATH);
@@ -762,6 +873,7 @@ void OpenCheckFiles(FILE **sigfile,FILE **self)
       in ASCCI mode. (Differs from 151 only on Windows platforms)
    */    
   if(150 == icc_failure) {
+    if (*sigfile)
     fclose(*sigfile);
     *sigfile = NULL;
   }
@@ -789,6 +901,7 @@ void OpenCheckFiles(FILE **sigfile,FILE **self)
   /** \induced 151. Signature test, fopen() failed on external file.
    */    
   if(151 == icc_failure) {
+    if (*sigfile)
     fclose(*sigfile);
     *sigfile = NULL;
   }
@@ -815,6 +928,7 @@ void OpenCheckFiles(FILE **sigfile,FILE **self)
      */
       if (152 == icc_failure)
       {
+        if (*self)
         fclose(*self);
         *self = NULL;
       }
@@ -829,6 +943,11 @@ void OpenCheckFiles(FILE **sigfile,FILE **self)
   }
 
   OUT();
+
+  free(tmppath);
+#if defined(_WIN32)
+  free(tmppathW);
+#endif
 }
 /*!
   @brief
@@ -1377,6 +1496,11 @@ int SetValue (ICClib * pcb, ICC_STATUS * status,ICC_VALUE_IDS_ENUM valueID,
                 (char *)"Attempted to set an unsettable value ID", __FILE__,
                 __LINE__);
     break;
+  case ICC_MODULE_NAME:
+     SetStatusLn(pcb, status, ICC_ERROR, ICC_UNSUPPORTED_VALUE_ID,
+        (char*)"Attempted to set an unsettable value ID - ICC_MODULE_NAME", __FILE__,
+        __LINE__);
+     break;
   case ICC_MEMORY_ALLOC:
     SetStatusLn(pcb, status, ICC_WARNING, ICC_VALUE_NOT_SET,
                 (char *)"Memory callbacks are unsafe (function deprecated, "
@@ -1498,7 +1622,7 @@ int SetValue (ICClib * pcb, ICC_STATUS * status,ICC_VALUE_IDS_ENUM valueID,
 int GetValue (ICClib * pcb, ICC_STATUS * status,ICC_VALUE_IDS_ENUM valueID,
 		   void *value, int valueLength)
 {
-   int tmp = 0;
+   size_t tmp = 0;
    int rv = ICC_OK;
    IN();
    if (status == NULL || pcb == NULL) {
@@ -1511,6 +1635,12 @@ int GetValue (ICClib * pcb, ICC_STATUS * status,ICC_VALUE_IDS_ENUM valueID,
 		  __FILE__,__LINE__);
       return ICC_FAILURE;
    }
+   if (valueLength <= 0) {
+       SetStatusLn(pcb, status, ICC_ERROR, ICC_INVALID_PARAMETER,
+           (char*)"valueLength must be greater than zero",
+           __FILE__, __LINE__);
+       return ICC_FAILURE;
+   }
    memset(value,0,valueLength);
    switch(valueID) {
    case ICC_ENTROPY_ESTIMATE:
@@ -1520,6 +1650,11 @@ int GetValue (ICClib * pcb, ICC_STATUS * status,ICC_VALUE_IDS_ENUM valueID,
    case ICC_INDUCED_FAILURE:
    case ICC_LOOPS:
    case ICC_SHIFT:
+#if 0
+   case ICC_TRNG_FIPS_MEMSIZE:
+   case ICC_TRNG_FIPS_DELAY:
+#endif
+   case ICC_TRNG_FIPS_OSR:
      tmp = sizeof(int);
      break;
   case ICC_FIPS_CALLBACK:
@@ -1574,9 +1709,21 @@ int GetValue (ICClib * pcb, ICC_STATUS * status,ICC_VALUE_IDS_ENUM valueID,
      MARK("ICC_INSTALL_PATH", (NULL != value) ? (char *)value : "");
      break;
    case ICC_VERSION:
+     if (valueLength > sizeof(Global.version))
+         valueLength = sizeof(Global.version);
      strncpy ((char *) value, Global.version,valueLength-1);
      ((char *)value)[valueLength - 1] = '\0';
      MARK("ICC_VERSION",(char *)value);
+     break;
+   case ICC_MODULE_NAME:
+      {
+         static const char moduleName[] = "IBM Crypto for C";
+         if (valueLength > sizeof(moduleName))
+            valueLength = sizeof(moduleName);
+         strncpy((char*)value, moduleName, valueLength - 1);
+         ((char*)value)[valueLength - 1] = '\0';
+         MARK("ICC_MODULE_NAME", (char*)value);
+      }
      break;
    case ICC_MEMORY_ALLOC:
      *(void **) value = NULL;
@@ -1631,6 +1778,22 @@ int GetValue (ICClib * pcb, ICC_STATUS * status,ICC_VALUE_IDS_ENUM valueID,
      *(int *)value = Loops();
       MARK("ICC_LOOPS","");
     break;
+#if 0
+    case ICC_TRNG_FIPS_MEMSIZE:
+        *(int*)value = ex_memsize;
+        MARK("ICC_TRNG_FIPS_MEMSIZE", "");
+        break;
+
+    case ICC_TRNG_FIPS_DELAY:
+        *(int*)value = getDelay();
+        MARK("ICC_TRNG_FIPS_DELAY", "");
+        break;        
+#endif
+    case ICC_TRNG_FIPS_OSR:
+        *(int*)value = ex_osr;
+        MARK("ICC_TRNG_FIPS_OSR", "");
+        break;
+
   case ICC_CPU_CAPABILITY_MASK:
      if(valueLength > 0) {
        *(char *)value = '\0';
@@ -1747,7 +1910,11 @@ static int iccSetUpRSAFIPS(ICC_STATUS *icc_stat)
    const RSA_METHOD *def = NULL;
    int ret = ICC_OSSL_SUCCESS;
    IN();
-#if 1 
+#if 0
+   /*
+     For FIPS: We are using rsa_sp800_56b_generate_key
+     so dont need fips_rsa_builtin_keygen.
+   */
    def = RSA_get_default_method();
    
    if(NULL != def && NULL == FIPS_RSA_meth) {
@@ -1921,27 +2088,6 @@ int SelfTest (ICClib *pcb,ICC_STATUS * status)
 
 
 /*!
-  @brief
-  OpenSSL calloc function
-  @param n the number of blocks to allocate
-  @param sz the size of each block
-  @param file __FILE__, file where the allocation was requested
-  @param line __LINE__, line where the allocation was requested
-  @return NULL or the newly allocated block
-  @note OpenSSL doesn't provide a calloc, so we call it's malloc and then
-  memset() the area to 0
-*/
-void *CRYPTO_calloc(int n,int sz,const char *file, int line)
-{
-  void *tmp = NULL;
-  tmp = CRYPTO_malloc(n*sz,file,line);
-  if(NULL != tmp) {
-    memset(tmp,0,n*sz);
-  }
-  return tmp;
-}
-
-/*! 
   @brief
   Free an MD context
   @param x pointer to an existing MD context
@@ -2142,10 +2288,9 @@ int my_EVP_DecryptInit(EVP_CIPHER_CTX *ctx,const EVP_CIPHER *type,unsigned char 
 
 /*!
   @brief Create a new RSA context
-  @param pcb the ICC library context
   @return A new RSA context or NULL on failure
 */
-RSA * my_RSA_new(ICClib *pcb) 
+RSA * my_RSA_new()
 {
   RSA *rsa = NULL;
 
@@ -2388,23 +2533,27 @@ int my_EVP_PKEY_encrypt_new(EVP_PKEY_CTX *ctx,
   return EVP_PKEY_encrypt(ctx,out,outlen,in,inlen);  
 }
 
-
+/* note duplication of HKDF_Extract() */
 
 unsigned char *my_HKDF_Extract(const EVP_MD *evp_md,
                             const unsigned char *salt, size_t salt_len,
                             const unsigned char *key, size_t key_len,
                             unsigned char *prk, size_t *prk_len)
 {
-    unsigned int tmp_len;
+    unsigned int tmp_len = 0;
     HMAC_CTX *hmac = NULL;
     hmac = HMAC_CTX_new();
-    HMAC_Init(hmac,salt, (int)salt_len, evp_md);
-    HMAC_Update(hmac,key,key_len);
-    HMAC_Final(hmac,prk,&tmp_len);
+    if (hmac) {
+        HMAC_Init(hmac, salt, (int)salt_len, evp_md);
+        HMAC_Update(hmac, key, key_len);
+        HMAC_Final(hmac, prk, &tmp_len);
     HMAC_CTX_free(hmac);
+    }
     *prk_len = tmp_len; 
     return prk;
 }
+
+/* note duplication of HKDF_Expand() */
 
 unsigned char *my_HKDF_Expand(const EVP_MD *evp_md,
                            const unsigned char *prk, size_t prk_len,
@@ -2421,8 +2570,15 @@ unsigned char *my_HKDF_Expand(const EVP_MD *evp_md,
   size_t dig_len = 0;
   size_t n = 0;
 
+  memset(prev, 0, sizeof(prev));
 
+  if (evp_md == NULL) {
+      return NULL;
+  }
   dig_len = EVP_MD_size(evp_md);
+  if ((int)dig_len <= 0 || dig_len > sizeof(prev)) {
+      return NULL;
+  }
 
   n = okm_len / dig_len;
   if (okm_len % dig_len) {
@@ -2451,15 +2607,20 @@ unsigned char *my_HKDF_Expand(const EVP_MD *evp_md,
         HMAC_Update(hmac, &ctr, 1);
         HMAC_Final(hmac, prev, NULL);
         copy_len = (done_len + dig_len > okm_len) ? (okm_len - done_len) :dig_len;
+        if (okm) {
         memcpy(okm + done_len, prev, copy_len);
+        }
         done_len += copy_len;
       }
     }
     HMAC_CTX_free(hmac);
+    ICC_securezero(prev, sizeof(prev));
   }
-  memset(prev,0,sizeof(prev));
   return ret;
 }
+
+/* note duplication of HKDF() */
+
 unsigned char *my_HKDF(const EVP_MD *evp_md,
                        const unsigned char *salt, size_t salt_len,
                        const unsigned char *key, size_t key_len,
@@ -2478,7 +2639,7 @@ unsigned char *my_HKDF(const EVP_MD *evp_md,
   {
     ret = my_HKDF_Expand(evp_md, prk, prk_len, info, info_len, okm, okm_len);
   }
-  memset(prk, 0, sizeof(prk));
+  ICC_securezero(prk, sizeof(prk));
 
   return ret;
 }
@@ -2835,6 +2996,9 @@ int my_RSA_sign(ICClib *pcb,int nid, const unsigned char *dgst, int dlen, unsign
   int fips = 0; 
   int len = 0;
 
+  if (NULL == rsa || rsa->n == NULL) {
+      return -1;
+  }
   rv = RSA_sign(nid,dgst, dlen, sig, siglen,rsa);
   if((NULL != pcb->callback) && (1 == rv)) {
     len = RSA_size(rsa);
@@ -2851,6 +3015,9 @@ int my_RSA_verify(ICClib *pcb,int nid, const unsigned char *dgst, int dgst_len, 
   int fips = 0; 
   int len = 0;
 
+  if (NULL == rsa || rsa->n == NULL) {
+      return -1;
+  }
   rv = RSA_verify(nid,dgst, dgst_len, sigbuf, siglen, rsa);
   if((NULL != pcb->callback) && (1 == rv)) {
     len = RSA_size(rsa);
@@ -2869,9 +3036,10 @@ int my_RSA_public_encrypt(ICClib *pcb,int flen, unsigned char *from,unsigned cha
   int len = 0;
   int cklen = 0;
 
-  if(NULL != rsa) {
-    len = RSA_size(rsa);
+  if (NULL == rsa || rsa->n == NULL) {
+      return -1;
   }
+    len = RSA_size(rsa);
   cklen = len;
   if(len > flen) {
     cklen = flen;
@@ -2900,9 +3068,10 @@ int my_RSA_private_decrypt(ICClib *pcb,int flen, const unsigned char *from,unsig
   int len = 0;
   int cklen = 0;
 
-  if(NULL != rsa) {
-    len = RSA_size(rsa);
+  if (NULL == rsa || rsa->n == NULL) {
+      return -1;
   }
+    len = RSA_size(rsa);
   cklen = len;
   if(len > flen) {
     cklen = flen;
@@ -2931,9 +3100,10 @@ int my_RSA_public_decrypt(ICClib *pcb,int flen, unsigned char *from,unsigned cha
   int len = 0;
   int cklen = 0;
 
-  if(NULL != rsa) {
-    len = RSA_size(rsa);
+  if (NULL == rsa || rsa->n == NULL) {
+      return -1;
   }
+    len = RSA_size(rsa);
   cklen = len;
   if(len > flen) {
     cklen = flen;
@@ -2962,9 +3132,12 @@ int my_RSA_private_encrypt(ICClib *pcb,int flen, const unsigned char *from,unsig
   int len = 0;
   int cklen = 0;
 
-  if(NULL != rsa) {
-    len = RSA_size(rsa);
+  /* callers bug but these NULLs will generate segVs if we let them through */
+  if (NULL == rsa || rsa->n == NULL) {
+      return -1;
   }
+
+    len = RSA_size(rsa);
   cklen = len;
   if(len > flen) {
     cklen = flen;
@@ -3067,24 +3240,18 @@ int my_DH_compute_key_padded(ICClib *pcb,unsigned char *key,BIGNUM *pub_key,DH *
 }
 
 
-#define HKDF_MAXBUF 1024
-
+static
 unsigned char *HKDF_Extract(ICClib *pcb,const EVP_MD *evp_md,
 			    const unsigned char *salt, size_t salt_len,
 			    const unsigned char *key, size_t key_len,
 			    unsigned char *prk, size_t *prk_len)
 {
-    unsigned int tmp_len = 0;
-    HMAC_CTX *hmac = NULL;
-    hmac = HMAC_CTX_new();
-    HMAC_Init(hmac,salt, (int)salt_len, evp_md);
-    HMAC_Update(hmac,key,key_len);
-    HMAC_Final(hmac,prk,&tmp_len);
-    HMAC_CTX_free(hmac);
-    *prk_len = tmp_len; 
-    return prk;
+    /* delegate to the internal helper */
+    return my_HKDF_Extract(evp_md, salt, salt_len,
+        key, key_len, prk, prk_len);
 }
 
+static
 unsigned char *HKDF_Expand(ICClib *pcb,const EVP_MD *evp_md,
 			   const unsigned char *prk, size_t prk_len,
 			   const unsigned char *info, size_t info_len,
@@ -3101,7 +3268,14 @@ unsigned char *HKDF_Expand(ICClib *pcb,const EVP_MD *evp_md,
   size_t copy_len;
   unsigned char ctr;
 
+  if (evp_md == NULL) {
+      return NULL;
+  }
   dig_len = EVP_MD_size(evp_md);
+  if ((int)dig_len <= 0 || dig_len > sizeof(prev)) {
+      return NULL;
+  }
+
   n = okm_len / dig_len;
   nid = EVP_MD_type(evp_md);
   fips = FIPS_MDbyNID(nid);
@@ -3149,6 +3323,7 @@ unsigned char *HKDF_Expand(ICClib *pcb,const EVP_MD *evp_md,
   }
 
   HMAC_CTX_free(hmac);
+  ICC_securezero(prev, sizeof(prev));
   if((NULL != pcb) && (NULL != pcb->callback)) {
     (*pcb->callback)("ICC_HKDF_Expand",nid,fips);
   }
@@ -3161,6 +3336,7 @@ err:
   return NULL;
 }
 
+static
 unsigned char *HKDF(ICClib *pcb,const EVP_MD *evp_md,
 			const unsigned char *salt, size_t salt_len,
 			const unsigned char *key, size_t key_len,
@@ -3175,11 +3351,13 @@ unsigned char *HKDF(ICClib *pcb,const EVP_MD *evp_md,
     return NULL;
 
   ret = HKDF_Expand(pcb,evp_md, prk, prk_len, info, info_len, okm, okm_len);
-  memset(prk,0,sizeof(prk));
+  ICC_securezero(prk,sizeof(prk));
 	 
   return ret;
 }
+
 /* Copied from OpenSSL-FIPS */
+static
 int dsa_paramgen_check_g(DSA *dsa)
 {
     BN_CTX *ctx = NULL;
@@ -3190,10 +3368,14 @@ int dsa_paramgen_check_g(DSA *dsa)
     if (!ctx)
         return -1;
     BN_CTX_start(ctx);
-    if (BN_cmp(dsa->g, BN_value_one()) <= 0)
-        return 0;
-    if (BN_cmp(dsa->g, dsa->p) >= 0)
-        return 0;
+    if (BN_cmp(dsa->g, BN_value_one()) <= 0) {
+        rv = 0;
+        goto err;
+    }
+    if (BN_cmp(dsa->g, dsa->p) >= 0) {
+        rv = 0;
+        goto err;
+    }
     tmp = BN_CTX_get(ctx);
     if (!tmp)
         goto err;
@@ -3235,22 +3417,22 @@ void recalculateCRT(RSA* rsa)
 {
    static const unsigned int gs[] = { 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97 };
    size_t gi = 0;
-   BIGNUM* two;
-   BIGNUM* g;
-   BIGNUM* k;
-   BIGNUM* t;
-   BIGNUM* dv;
-   BIGNUM* rem;
-   BIGNUM* x;
-   BIGNUM* y;
+   BIGNUM* two = NULL;
+   BIGNUM* g = NULL;
+   BIGNUM* k = NULL;
+   BIGNUM* t = NULL;
+   BIGNUM* dv = NULL;
+   BIGNUM* rem = NULL;
+   BIGNUM* x = NULL;
+   BIGNUM* y = NULL;
    BIGNUM * r1 = NULL, * r2 = NULL;
    BN_CTX* ctx = NULL;
    ctx = BN_CTX_new();
    if (ctx == NULL)
-      goto err;
+      goto cleanup;
    BN_CTX_start(ctx);
    two = BN_new();
-   BN_set_word(two, 2);
+   if (!two || !BN_set_word(two, 2)) goto cleanup;
    g = BN_new();
    k = BN_secure_new();
    t = BN_secure_new();
@@ -3258,8 +3440,10 @@ void recalculateCRT(RSA* rsa)
    rem = BN_secure_new();
    x = BN_secure_new();
    y = BN_secure_new();
+   if (!g || !k || !t || !dv || !rem || !x || !y) goto cleanup;
    r1 = BN_CTX_get(ctx);
    r2 = BN_CTX_get(ctx);
+   if (!r1 || !r2) goto cleanup;
    /* 1. [Initialize] Set k=d*e?1. */
    BN_mul(k, rsa->e, rsa->d, ctx);
    BN_sub_word(k, 1);
@@ -3309,27 +3493,34 @@ void recalculateCRT(RSA* rsa)
          }
          {
             if (!BN_sub(r1, rsa->p, BN_value_one()))
-               goto err;               /* p-1 */
+               goto cleanup;               /* p-1 */
             if (!BN_sub(r2, rsa->q, BN_value_one()))
-               goto err;               /* q-1 */
+               goto cleanup;               /* q-1 */
             if (/* calculate d mod (p-1) */
                !BN_mod(rsa->dmp1, rsa->d, r1, ctx)
                /* calculate d mod (q-1) */
                || !BN_mod(rsa->dmq1, rsa->d, r2, ctx)) {
-               goto err;
+               goto cleanup;
             }
             /* calculate inverse of q mod p */
             if (!BN_mod_inverse(rsa->iqmp, rsa->q, rsa->p, ctx))
-               goto err;
+               goto cleanup;
          }
-         if (ctx != NULL) {
-            BN_CTX_end(ctx);
-            BN_CTX_free(ctx);
-         }
-         return;
+         goto cleanup;
       }
    }
-err:
+cleanup:
+   /* Zero and free all sensitive secure-heap BIGNUMs */
+   BN_clear_free(k);
+   BN_clear_free(t);
+   BN_clear_free(dv);
+   BN_clear_free(rem);
+   BN_clear_free(x);
+   BN_clear_free(y);
+   /* Free non-sensitive BIGNUMs */
+   BN_free(two);
+   BN_free(g);
+   /* BN_CTX_end releases r1, r2; BN_CTX_free releases the context */
    if (ctx != NULL) {
       BN_CTX_end(ctx);
       BN_CTX_free(ctx);

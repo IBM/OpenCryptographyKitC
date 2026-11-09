@@ -7,8 +7,8 @@ $(GSKLIB_B).so: gsk_wrap2$(OBJSUFX) exp$(OBJSUFX) totp$(OBJSUFX) \
 		$(TIMER_OBJS) \
 		$(NEW_ICC)/iccsdk/$(ICCLIB) $(MUPPET) \
 		$(STKPK11) $(ZLIB_LIB) ../icc/csvquery.o
-	-chtag -r OLD_ICC/ZOS*/iccsdk/libicc.a
-	-chtag -c ISO8859-1 OLD_ICC/ZOS*A*/icc/icclib/ICCSIG.txt 		
+	if [ -e OLD_ICC/ZOS*/iccsdk/libicc.a ] ; then chtag -r OLD_ICC/ZOS*/iccsdk/libicc.a; fi
+	if [ -e OLD_ICC/ZOS*A*/icc/icclib/ICCSIG.txt ] ; then chtag -c ISO8859-1 OLD_ICC/ZOS*A*/icc/icclib/ICCSIG.txt; fi
 	$(SLD) $(SLDFLAGS) \
 		gsk_wrap2$(OBJSUFX) exp$(OBJSUFX) \
 		$(TIMER_OBJS) ../icc/csvquery.o \
@@ -40,8 +40,8 @@ $(JGSKLIB_B).so: jgsk_wrap2$(OBJSUFX) jexp$(OBJSUFX) \
 		$(JTIMER_OBJS) \
 		$(NEW_ICC)/iccsdk/$(ICCLIB) $(MUPPET) \
 		$(ZLIB_LIB) ../icc/csvquery.o
-	-chtag -r OLD_ICC/ZOS*/iccsdk/libicc.a
-	-chtag -c ISO8859-1 OLD_ICC/ZOS*A*/icc/icclib/ICCSIG.txt 		
+	if [ -e OLD_ICC/ZOS*/iccsdk/libicc.a ] ; then chtag -r OLD_ICC/ZOS*/iccsdk/libicc.a; fi
+	if [ -e OLD_ICC/ZOS*A*/icc/icclib/ICCSIG.txt ] ; then chtag -c ISO8859-1 OLD_ICC/ZOS*A*/icc/icclib/ICCSIG.txt; fi
 	$(SLD)  $(SLDFLAGS)  \
 		jgsk_wrap2$(OBJSUFX) jexp$(OBJSUFX) \
 		$(JTIMER_OBJS) ../icc/csvquery.o \

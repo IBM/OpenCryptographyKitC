@@ -1,8 +1,8 @@
 /*************************************************************************
 // Copyright IBM Corp. 2023
 //
-// Licensed under the Apache License 2.0 (the "License").  You may not use
-// this file except in compliance with the License.  You can obtain a copy
+// Licensed under the Apache License 2.0 (the "License"). You may not use
+// this file except in compliance with the License. You can obtain a copy
 // in the file LICENSE in the source distribution.
 *************************************************************************/
 
@@ -10,6 +10,7 @@
 // Description: Low level algorithms used in heath tests.
 //
 *************************************************************************/
+
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -37,6 +38,7 @@ static const char * PMAXB_Tag = "pmaxB";
 static const char * HTtag = "ENTROPY_HT";
 extern int ex_loops;    /* loops set from config file or environment */
 
+#if 0
 /*! @brief delay loop
     @param i pointer to the loop iterator
     @param j pointer to the loop count
@@ -53,6 +55,7 @@ int looper(volatile int *i,volatile int *j)
 }
 #if defined(_WIN32)
 #  pragma optimize("",on)
+#endif
 #endif
 
 /* Converts the log values to % entropy * 2, results are scaled/truncated by the API */
@@ -106,7 +109,7 @@ unsigned int pmaxLGetEnt(unsigned char *data, int len)
   double hmin = 0.0;
 #endif
   int i = 0;
-  int k = 0;
+  unsigned int k = 0;
   int ip = 0;
   int ilog2p = 0;
   unsigned int syms[256];

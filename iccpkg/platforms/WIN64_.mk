@@ -28,7 +28,6 @@ $(GSKLIB_B)_64.dll: gsk_wrap2$(OBJSUFX) $(EX_OBJS) \
 		$(NEW_ICC)/iccsdk/$(ICCLIB) $(MUPPET) \
 		$(STKPK11) $(ZLIB_LIB) $(EXPORT_FLAG)$(ICCPKG_EXPFILE) \
 		$(LDLIBS)
-	-$(MT) -manifest $@.manifest -outputresource:$@\;2
 	-$(CP) *.lib $(GSK_SDK)/
 	-$(CP) *.pdb $(GSK_SDK)/
 	$(STRIP) $@

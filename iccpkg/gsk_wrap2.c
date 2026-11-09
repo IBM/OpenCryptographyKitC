@@ -1,15 +1,14 @@
 /*************************************************************************
 // Copyright IBM Corp. 2023
 //          
-// Licensed under the Apache License 2.0 (the "License").  You may not use
-// this file except in compliance with the License.  You can obtain a copy
+// Licensed under the Apache License 2.0 (the "License"). You may not use
+// this file except in compliance with the License. You can obtain a copy
 // in the file LICENSE in the source distribution.
 *************************************************************************/
 
-/*************************************************************************
+/*
 // Description: Manually created source for the ICCPKG wrapper for GSkit
-//                                                                           
-*************************************************************************/
+*/
 
 /*! \IMPLEMENT
   This is the frequently changing part of the code that becomes
@@ -225,6 +224,17 @@ int ICC_LINKAGE ICC_GetValue(ICC_CTX *pcb,ICC_STATUS* status,ICC_VALUE_IDS_ENUM 
 	  }
 	  strncpy(value,ICC_PRODUCT_VERSION,valueLength);
 	  break;
+   case ICC_MODULE_NAME:
+      {
+         static const char moduleName[] = "IBM Crypto for C";
+         rv = ok_status(status);
+         tmp = sizeof(moduleName);
+         if (tmp > valueLength) {
+            rv = truncated_status(status);
+         }
+         strncpy(value, moduleName, valueLength);
+      }
+      break;
 	case ICC_INSTALL_PATH:
 	  rv = ok_status(status);
 	  tmpp = calloc(1,ICC_VALUESIZE);

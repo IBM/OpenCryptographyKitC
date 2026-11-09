@@ -8,7 +8,7 @@ Rem This needs to be -d for openssl debug build
 set DEBUG=%2
 if x%OSSLVER% == x goto no_OSSLVER
 cd ..\%OSSLVER%
-perl Configure %DEBUG% VC-WIN64A no-engine no-sctp no-idea no-rc5 no-whirlpool no-zlib enable-mdc2 enable-camellia enable-md2 no-seed
+perl Configure %DEBUG% -DFIPS_MODE VC-WIN64A no-engine no-sctp no-idea no-rc5 no-whirlpool no-zlib enable-mdc2 enable-camellia enable-md2 no-seed
 set MAKE=
 set MAKEFLAGS=
 nmake /f makefile

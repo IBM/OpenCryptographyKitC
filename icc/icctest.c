@@ -1,14 +1,13 @@
 /*************************************************************************
-// Copyright IBM Corp. 2023
-//
-// Licensed under the Apache License 2.0 (the "License").  You may not use
-// this file except in compliance with the License.  You can obtain a copy
-// in the file LICENSE in the source distribution.
+ Copyright IBM Corp. 2023
+
+ Licensed under the Apache License 2.0 (the "License"). You may not use
+ this file except in compliance with the License. You can obtain a copy
+ in the file LICENSE in the source distribution.
 *************************************************************************/
 
 /*************************************************************************
-// Description: Unit test for ICC
-//
+ Description: Unit test for ICC
 *************************************************************************/
 
 #include <stdio.h>
@@ -681,9 +680,6 @@ int doEVPEnvelopeAndSignatureUnitTest(ICC_CTX *ICC_ctx)
   status = calloc(1,sizeof(ICC_STATUS));
 
   
-  if(!fips_mode) {
-    keylen = 512;
-  }
   rsa = ICC_RSA_generate_key(ICC_ctx,keylen,0x10001,NULL,NULL);
   if( (NULL == rsa) || (rv != ICC_OSSL_SUCCESS) ) {
     printf("EVP Envelope And Signature abort. Could not create RSA key.\n");
@@ -941,7 +937,7 @@ int doKeyUnitTest(ICC_CTX *ICC_ctx) {
   unsigned char *tptr1 = NULL;
   static int intbuf1[1000];
   static unsigned char bufbn[1000];
-  int keylen = 512;
+  int keylen = 2048;
   ICC_BIGNUM *bn = NULL;
   int counter = 0;
   int i = 0;
@@ -2343,8 +2339,8 @@ int doKDFTest(ICC_CTX *ICC_ctx)
       for(j = 0; j < 63; j++) {
 	srv = ICC_SP800_108_KDF(ICC_ctx,kdf,
 				buffer+(j*alglist[i].keylen),alglist[i].keylen,
-				(unsigned char *)"ICC BVT",8,
-				(unsigned char *)"ABCDEFG",9,
+				(unsigned char *)"ICC BVT\0",8,
+				(unsigned char *)"ABCDEFG\0\0",9,
 				buffer + ((j+1)*alglist[i].keylen),
 				alglist[i].keylen
 				); 
@@ -2663,6 +2659,9 @@ int ProbeInt(ICC_CTX *icc_ctx,ICC_VALUE_IDS_ENUM e)
   case ICC_SHIFT:
     tag = "ICC_SHIFT";
     break;
+  case ICC_TRNG_FIPS_OSR:
+      tag = "ICC_TRNG_FIPS_OSR";
+      break;
   default:
     break;
   }
@@ -2867,6 +2866,7 @@ int doDualTest() {
   int retcode = 0;
   static char *path = NULL;
   char value[ICC_VALUESIZE];
+  static const char expModuleName[] = "IBM Crypto for C";
 
 #if !defined(ICCPKG)
   path = "../package";
@@ -2889,6 +2889,31 @@ int doDualTest() {
   retcode = ICC_GetValue(ICC_ctx1,status,ICC_VERSION,value,ICC_VALUESIZE);
   printf("ICC #2 version %s\n",value);
   print_cfg(ICC_ctx1,"    ");
+  memset(value, 0, sizeof(value));
+  {
+     static const char expModuleName[] = "IBM Crypto for C";
+     retcode = ICC_GetValue(ICC_ctx, status, ICC_MODULE_NAME, value, ICC_VALUESIZE);
+     if (retcode == ICC_OK) {
+        printf("ICC #1 module name [%s]\n", value);
+        if (memcmp(value, expModuleName, sizeof(expModuleName))) {
+           printf("ICC #1 module name incorrect\n");
+        }
+     }
+     else {
+        printf("ICC #1 NO module name\n");
+     }
+     memset(value, 0, sizeof(value));
+     retcode = ICC_GetValue(ICC_ctx1, status, ICC_MODULE_NAME, value, ICC_VALUESIZE);
+     if (retcode == ICC_OK) {
+        printf("ICC #2 module name [%s]\n", value);
+        if (memcmp(value, expModuleName, sizeof(expModuleName))) {
+           printf("ICC #2 module name incorrect\n");
+        }
+     }
+     else {
+        printf("ICC #2 NO module name\n");
+     }
+  }
   ICC_Cleanup(ICC_ctx,status);
   ICC_Cleanup(ICC_ctx1,status1);
 
@@ -3428,6 +3453,22 @@ int doUnitTest(int test,char *fips, int unicode)
         version = VString2(value);
         printf("ICC version %s\n", value);
         print_cfg(ICC_ctx, "    ");
+        {
+           static const char expModuleName[] = "IBM Crypto for C";
+           value[0] = '\0';
+           retcode = ICC_GetValue(ICC_ctx, status, ICC_MODULE_NAME, value, ICC_VALUESIZE);
+           if (retcode == ICC_OK) {
+              printf("ICC module name [%s]\n", value);
+              if (memcmp(value, expModuleName, sizeof(expModuleName))) {
+                 printf("ICC module name incorrect\n");
+                 error = 1;
+                 rv = ICC_FAILURE;
+              }
+           }
+           else {
+              printf("ICC NO module name\n");
+           }
+        }
       }
       check_stack(0);
       check_stack(1);

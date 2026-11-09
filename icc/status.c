@@ -1,16 +1,13 @@
 /*************************************************************************
 // Copyright IBM Corp. 2023
 //
-// Licensed under the Apache License 2.0 (the "License").  You may not use
-// this file except in compliance with the License.  You can obtain a copy
+// Licensed under the Apache License 2.0 (the "License"). You may not use
+// this file except in compliance with the License. You can obtain a copy
 // in the file LICENSE in the source distribution.
 *************************************************************************/
-
-/*************************************************************************
+/*
 // Description: Error message routines.Only usable in an icclib context.
-//
-//
-*************************************************************************/
+*/
 
 #include "icc.h"
 #include "icclib.h"
@@ -57,7 +54,7 @@ int getErrorState(void) {
 ICCSTATIC void ICC_strlcat(char *base, const char *append,
                            unsigned int maxlen) {
   int l;
-  l = maxlen - strlen(base);
+  l = maxlen - strlen(base) - 1;
   if (l > 1) {
     strncat(base, append, l);
   }

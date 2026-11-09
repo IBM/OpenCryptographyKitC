@@ -349,8 +349,8 @@ LINUX32_CXXFLAGS = -m32 $(LINUX_$(CONFIG)_CFLAGS) -D_REENTRANT -fno-strict-alias
 LINUX32_LDFLAGS = -m32 $(LINUX_$(CONFIG)_LDFLAGS) $(LINUX_OUT) $@
 LINUX32_SLDFLAGS = -m32 $(LINUX_$(CONFIG)_LDFLAGS) -shared -Wl,-soname,$@  -Wl,--rpath,\$$ORIGIN $(LINUX_OUT) $@
 
-LINUX64_CFLAGS = -m64  $(LINUX_$(CONFIG)_CFLAGS) -D_REENTRANT -fno-strict-aliasing -fno-exceptions -fPIC -Wall  -c
-LINUX64_CXXFLAGS = -m64 $(LINUX_$(CONFIG)_CFLAGS) -D_REENTRANT -fno-strict-aliasing -fPIC -Wall -c
+LINUX64_CFLAGS = -m64  $($(OPSYS)_$(CONFIG)_CFLAGS) -D_REENTRANT -fno-strict-aliasing -fno-exceptions -fPIC -Wall  -c
+LINUX64_CXXFLAGS = -m64 $($(OPSYS)_$(CONFIG)_CFLAGS) -D_REENTRANT -fno-strict-aliasing -fPIC -Wall -c
 LINUX64_LDFLAGS = -m64 $(LINUX_$(CONFIG)_LDFLAGS) $(LINUX_OUT) $@
 LINUX64_SLDFLAGS = -m64 $(LINUX_$(CONFIG)_LDFLAGS) -shared -Wl,-soname,$@ -Wl,--rpath,\$$ORIGIN $(LINUX_OUT) $@
 
@@ -559,8 +559,8 @@ AMD64_LINUX_CC             = $(LINUX_CC)
 AMD64_LINUX_CXX             = $(LINUX_CXX)
 # -fno-strict-aliasingw orks around GCC 4.x bugs which cause the fork test to crash
 AMD64_LINUX_CFLAGS         = -fno-strict-aliasing  $(LINUX64_CFLAGS)
-AMD64_LINUX_debug_CFLAGS   =
-AMD64_LINUX_release_CFLAGS =
+AMD64_LINUX_debug_CFLAGS   = $(LINUX_debug_CFLAGS)
+AMD64_LINUX_release_CFLAGS = $(LINUX_release_CFLAGS)
 # Enable to get gcc working as a static analysis tool
 #AMD64_LINUX_CFLAGS         = -fno-strict-aliasing  $(LINUX64_CFLAGS) -fanalyzer
 AMD64_LINUX_CXXFLAGS       = $(LINUX64_CXXFLAGS)
@@ -629,8 +629,8 @@ PPC64_LINUX_CC             = $(LINUX_CC)
 PPC64_LINUX_CXX             = $(LINUX_CXX)
 # OpenSSL command segfaults with -O3,-O2, -O1 and -O0, but not as often with O2
 PPC64_LINUX_CFLAGS         = $(LINUX64_CFLAGS)
-PPC64_LINUX_debug_CFLAGS   =
-PPC64_LINUX_release_CFLAGS =
+PPC64_LINUX_debug_CFLAGS   = $(LINUX_debug_CFLAGS)
+PPC64_LINUX_release_CFLAGS = $(LINUX_release_CFLAGS)
 PPC64_LINUX_CXXFLAGS       = $(LINUX64_CXXFLAGS)
 PPC64_LINUX_LD             = $(LINUX_CC)
 PPC64_LINUX_LD_CXX         = $(LINUX_CXX)
@@ -663,8 +663,8 @@ PPC64LE_LINUX_CC             = $(LINUX_CC)
 PPC64LE_LINUX_CXX             = $(LINUX_CXX)
 # OpenSSL command segfaults with -O3,-O2, -O1 and -O0, but not as often with O2
 PPC64LE_LINUX_CFLAGS         = $(LINUX64_CFLAGS)
-PPC64LE_LINUX_debug_CFLAGS   =
-PPC64LE_LINUX_release_CFLAGS =
+PPC64LE_LINUX_debug_CFLAGS   = $(LINUX_debug_CFLAGS)
+PPC64LE_LINUX_release_CFLAGS = $(LINUX_release_CFLAGS)
 PPC64LE_LINUX_CXXFLAGS       = $(LINUX64_CXXFLAGS)
 PPC64LE_LINUX_LD             = $(LINUX_CC)
 PPC64LE_LINUX_LD_CXX         = $(LINUX_CXX)
@@ -922,6 +922,11 @@ OSX_ARM64_LDFLAGS2	= $(OSX_LDFLAGS2)
 OSX_ARM64_SLDFLAGS2	= $(OSX_SLDFLAGS2)
 OSX_ARM64_MT		= true
 
+ifeq ($(findstring linux008, $(HOSTNAME)), linux008)
+# zlinux008 build machine will target specific Z architecture
+S390_MARCH=-march=z9-109
+endif
+$(warning S390_MARCH=$(S390_MARCH))
 
 #--- GCC definitions on Linux s390 32 bit
 S390_LINUX_RM             = rm -f
@@ -930,10 +935,10 @@ S390_LINUX_CP             = cp -f
 S390_LINUX_DEBUGGER       = ddd
 S390_LINUX_CC             = $(LINUX_CC)
 S390_LINUX_CXX            = $(LINUX_CXX)
-S390_LINUX_CFLAGS         = -m31 $(LINUX_$(CONFIG)_CFLAGS) -D_REENTRANT -fno-strict-aliasing -fno-exceptions -fPIC -Wall  -c
-S390_LINUX_debug_CFLAGS    =
-S390_LINUX_release_CFLAGS  =
-S390_LINUX_CXXFLAGS       = -m31 $(LINUX_$(CONFIG)_CFLAGS) -D_REENTRANT -fno-strict-aliasing -fPIC -Wall -c
+S390_LINUX_CFLAGS         = -m31 $(S390_LINUX_$(CONFIG)_CFLAGS) -D_REENTRANT -fno-strict-aliasing -fno-exceptions -fPIC -Wall -c
+S390_LINUX_debug_CFLAGS    = $(LINUX_debug_CFLAGS) $(S390_MARCH)
+S390_LINUX_release_CFLAGS  = $(LINUX_release_CFLAGS) $(S390_MARCH)
+S390_LINUX_CXXFLAGS       = -m31 $(S390_LINUX_$(CONFIG)_CFLAGS) -D_REENTRANT -fno-strict-aliasing -fPIC -Wall -c
 S390_LINUX_LD             = $(S390_LINUX_CC)
 S390_LINUX_LD_CXX         = $(S390_LINUX_CXX)
 S390_LINUX_SLD            = $(S390_LINUX_LD)
@@ -965,8 +970,8 @@ S390X_LINUX_DEBUGGER       = ddd
 S390X_LINUX_CC             = $(LINUX_CC)
 S390X_LINUX_CXX            = $(LINUX_CXX)
 S390X_LINUX_CFLAGS         = $(LINUX64_CFLAGS)
-S390X_LINUX_debug_CFLAGS    =
-S390X_LINUX_release_CFLAGS  =
+S390X_LINUX_debug_CFLAGS    = $(LINUX_debug_CFLAGS) $(S390_MARCH)
+S390X_LINUX_release_CFLAGS  = $(LINUX_release_CFLAGS) $(S390_MARCH)
 S390X_LINUX_CXXFLAGS       = $(LINUX64_CXXFLAGS)
 S390X_LINUX_LD             = $(S390X_LINUX_CC)
 S390X_LINUX_LD_CXX         = $(S390X_LINUX_CXX)
@@ -1000,8 +1005,10 @@ ZOS_CC             = c99
 # Actually xlc++ has trouble with envelope.c, so we can compile c++ with the "-+" flag
 ZOS_CXX            = cxx -+
 
-ZOS_debug_CFLAGS   = -g
-ZOS_release_CFLAGS = -O3 -Wc,strict,hgpr
+ZOS_MARCH=-Wc,"'ARCH(10)'"
+
+ZOS_debug_CFLAGS   = -g $(ZOS_MARCH)
+ZOS_release_CFLAGS = -O3 -Wc,strict,hgpr $(ZOS_MARCH)
 ZOS_CFLAGS         = $(ZOS_$(CONFIG)_CFLAGS) -DCHARSET_EBCDIC -DOPEN_THREADS=2 -D_XOPEN_SOURCE=600 -D__SUSV3 -Wc,langlvl\(extended\),dll,xplink,lp64 -Wl,dll,xplink,lp64 -c 
 # Unfortunately, I had to add the dll flags HERE, or else icclib.c 
 # and similar files exported no symbols... -D_REENTRANT -c 
@@ -1028,15 +1035,15 @@ ZOS_LDFLAGS2       = $(ZOS_LDFLAGS)
 ZOS_SLDFLAGS2      = $(ZOS_SLDFLAGS)
 ZOS_MT  	   = true
 ZOS_CCVERSION = echo $(CC)
-
+ZOS_CFLAGS_OPT_OFF = -qnooptimize
 
 #--- c89 definitions on z/OS 64 bit
 ZOSA_DEBUGGER       = 
 # cc (not c89 anymore from z/OS 1.6 on) # could be cc
 ZOSA_CC             = $(ZOS_CC)
 ZOSA_CXX            = $(ZOS_CXX)
-ZOSA_debug_CFLAGS   = -g
-ZOSA_release_CFLAGS = -O3 -Wc,strict,hgpr
+ZOSA_debug_CFLAGS   = -g $(ZOS_MARCH)
+ZOSA_release_CFLAGS = -O3 -Wc,strict,hgpr $(ZOS_MARCH)
 ZOSA_CFLAGS         = $(ZOSA_$(CONFIG)_CFLAGS) -DOPEN_THREADS=2 -D_XOPEN_SOURCE=600 -D__SUSV3 -Wc,langlvl\(extended\),dll,xplink,lp64,ASCII -Wl,dll,xplink,lp64 -c 
 ZOSA_CXXFLAGS       = $(ZOSA_CFLAGS)
 # Unfortunately, I had to add the dll flags HERE, or else icclib.c 
@@ -1064,15 +1071,17 @@ ZOSA_LDFLAGS2       = $(ZOSA_LDFLAGS)
 ZOSA_SLDFLAGS2      = $(ZOSA_SLDFLAGS)
 ZOSA_MT  	   = true
 ZOSA_CCVERSION = $(ZOS_CCVERSION)
-
+# Somehow invoking ksh primes the terminal to expect ascii output from icctest and automatically converts it.
+ZOSA_ICC_RUN_SETUP = ksh --version;
+ZOSA_CFLAGS_OPT_OFF = -qnooptimize
 
 #--- c89 definitions on z/OS 31 bit
 ZOS31_DEBUGGER       = 
 # cc (not c89 anymore from z/OS 1.6 on) # could be cc
 ZOS31_CC             = $(ZOS_CC)
 ZOS31_CXX            = $(ZOS_CXX)
-ZOS31_debug_CFLAGS   = -g
-ZOS31_release_CFLAGS = -O3 -Wc,strict,hgpr
+ZOS31_debug_CFLAGS   = -g $(ZOS_MARCH)
+ZOS31_release_CFLAGS = -O3 -Wc,strict,hgpr $(ZOS_MARCH)
 ZOS31_CFLAGS         = $(ZOS31_$(CONFIG)_CFLAGS) -DCHARSET_EBCDIC -DOPEN_THREADS=2 -D_XOPEN_SOURCE=600 -D__SUSV3 -Wc,ARCH\(9\),langlvl\(extended\),dll,xplink -Wl,dll,xplink -c 
 # Unfortunately, I had to add the dll flags HERE, or else icclib.c 
 # and similar files exported no symbols... -D_REENTRANT -c 
@@ -1105,8 +1114,8 @@ ZOSA31_DEBUGGER       =
 # cc (not c89 anymore from z/OS 1.6 on) # could be cc
 ZOSA31_CC             = $(ZOS_CC)
 ZOSA31_CXX            = $(ZOS_CXX)
-ZOSA31_debug_CFLAGS   = -g
-ZOSA31_release_CFLAGS = -O3 -Wc,strict,hgpr
+ZOSA31_debug_CFLAGS   = -g $(ZOS_MARCH)
+ZOSA31_release_CFLAGS = -O3 -Wc,strict,hgpr $(ZOS_MARCH)
 ZOSA31_CFLAGS         = $(ZOSA31_$(CONFIG)_CFLAGS) -DOPEN_THREADS=2 -D_XOPEN_SOURCE=600 -D__SUSV3 -Wc,ARCH\(9\),langlvl\(extended\),dll,xplink,ASCII -Wl,dll,xplink -c 
 # Unfortunately, I had to add the dll flags HERE, or else icclib.c 
 # and similar files exported no symbols... -D_REENTRANT -c 
@@ -1133,6 +1142,8 @@ ZOSA31_LDFLAGS2       = $(ZOS31_LDFLAGS)
 ZOSA31_SLDFLAGS2      = $(ZOS31_SLDFLAGS)
 ZOSA31_MT  	   = true
 ZOSA31_CCVERSION = $(ZOS_CCVERSION)
+ZOSA31_ICC_RUN_SETUP = ksh --version;
+ZOS31_CFLAGS_OPT_OFF = -qnooptimize
 
 #--- end of c89 definitions on z/OS
 
@@ -1205,6 +1216,7 @@ AIX64_SLDFLAGS2      = $(AIX64_SLDFLAGS)
 AIX64_MT	     = true
 AIX64_CCVERSION = $(ZOS_CCVERSION)
 AIX64_ICCLIB_LNK     = -binitfini:iccSLInit:iccSLFini:0
+AIX64_CFLAGS_OPT_OFF = -O0
 
 #--- Power hypervisor
 POWERH_RM             = rm -f
@@ -1671,6 +1683,7 @@ ICCLIB_LNK      = $($(OPSYS)_ICCLIB_LNK)
 LDFLAGS2        = $($(OPSYS)_LDFLAGS2)
 CFLAGSE         = $($(OPSYS)_CFLAGSE)
 LDFLAGSE        = $($(OPSYS)_LDFLAGSE)
+CFLAGS_OPT_OFF  = $($(OPSYS)_CFLAGS_OPT_OFF)
 
 OUT             = $($(OPSYS)_OUT)
 MT		= $($(OPSYS)_MT)

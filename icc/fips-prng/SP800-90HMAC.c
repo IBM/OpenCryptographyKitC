@@ -1,8 +1,8 @@
 /*************************************************************************
 // Copyright IBM Corp. 2023
 //
-// Licensed under the Apache License 2.0 (the "License").  You may not use
-// this file except in compliance with the License.  You can obtain a copy
+// Licensed under the Apache License 2.0 (the "License"). You may not use
+// this file except in compliance with the License. You can obtain a copy
 // in the file LICENSE in the source distribution.
 *************************************************************************/
 
@@ -369,7 +369,7 @@ static const StringBuf HMAC_SHA512_256IntEin =
        0xdc,0x62,0x35,0x46,0x2c,0xa1,0x51,0x42
      }
     };
-StringBuf HMAC_SHA512_256IntNon = 
+static const StringBuf HMAC_SHA512_256IntNon = 
   {0,16,
      {
        0x17,0x1a,0xd9,0x62,0xc9,0xe2,0xc8,0xdf,

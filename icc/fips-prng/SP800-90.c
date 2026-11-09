@@ -223,7 +223,7 @@ static int matchstr(char *one, char *two, char delim) {
 */
 const char **get_SP800_90FIPS(void) {
   static int initialized = 0;
-  static char *FIPS_rng_list[sizeof(PRNG_list) / sizeof(SP800_90PRNG_t *)];
+  static char* FIPS_rng_list[sizeof(PRNG_list) / sizeof(SP800_90PRNG_t*)] = { NULL };
 
   int i = 0;
   int j = 0;
@@ -231,7 +231,6 @@ const char **get_SP800_90FIPS(void) {
   char *ptr = NULL;
 
   if (!initialized) {
-    memset(FIPS_rng_list, 0, sizeof(FIPS_rng_list));
     for (i = 0; NULL != PRNG_list[i]; i++) {
       exclude = 0;
       if (NULL != exclude_list) {
@@ -524,7 +523,10 @@ SP800_90STATE PRNG_Instantiate(SP800_90PRNG_Data_t *ctx,
         *flags |= ALLOC_NONCE;
         *nonl = NeededBytes(ctx);
         *nonce = ICC_Calloc(1, *nonl, __FILE__, __LINE__);
-        if (TRNG_OK != PRNG_GenerateRandomSeed((PRNG_CTX *)ctx, *nonl, *nonce)) {
+        if (NULL == *nonce) {
+          ctx->state = SP800_90ERROR;
+          ctx->error_reason = ERRAT("ICC_Calloc failed for nonce");
+        } else if (TRNG_OK != PRNG_GenerateRandomSeed((PRNG_CTX *)ctx, *nonl, *nonce)) {
           ctx->state = SP800_90ERROR;
           ctx->error_reason = ERRAT("TRNG failure, low entropy");
         }
@@ -1311,7 +1313,7 @@ SP800_90STATE RNG_ReSeed(PRNG_CTX *ctx, unsigned char *adata,
           else
           {
             ictx->prng->Res(ctx, ictx->eBuf, einl, adata, adatal);
-            memset(ictx->eBuf, 0, einl);
+            ICC_securezero(ictx->eBuf, einl);
           }
         }
         break;
@@ -1325,14 +1327,19 @@ SP800_90STATE RNG_ReSeed(PRNG_CTX *ctx, unsigned char *adata,
         break;
       }
     }
+	state = ictx->state;
+  }
+  else if (ictx == NULL)
+  {
+    state = SP800_90ERROR;
   }
   else
   {
     ictx->state = SP800_90ERROR;
     ictx->error_reason = ERRAT(SP800_90_NOT_INIT);
+	state = ictx->state;
   }
 
-  state = ictx->state;
 
   return state;
 }
@@ -1707,7 +1714,7 @@ void RNG_CTX_free(PRNG_CTX *ctx)
       ictx->prng->Cln(ctx);
       ictx->prng = NULL;
     }
-    memset(ictx,0,sizeof(SP800_90PRNG_Data_t));
+    ICC_securezero(ictx,sizeof(SP800_90PRNG_Data_t));
     ICC_Free(ictx);
   }
 }

@@ -1,8 +1,8 @@
 /*************************************************************************
 // Copyright IBM Corp. 2023
 //
-// Licensed under the Apache License 2.0 (the "License").  You may not use
-// this file except in compliance with the License.  You can obtain a copy
+// Licensed under the Apache License 2.0 (the "License"). You may not use
+// this file except in compliance with the License. You can obtain a copy
 // in the file LICENSE in the source distribution.
 *************************************************************************/
 
@@ -113,6 +113,6 @@ int APTests();
 int RCTests();
 
 /* Delay loop, hopefully a hard to optimize away one */
-int looper(volatile int *i,volatile int *j);
+int looper(volatile int *i, volatile int *j, char d, char* memptr, unsigned int memsize, int useDelay);
 
 #endif

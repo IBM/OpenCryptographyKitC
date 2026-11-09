@@ -24,7 +24,9 @@ int Get_default_tuner();
 int Set_default_tuner(int tuner);
 int Set_rng_setup(int setup);
 int timer_status();
-int RdCtrBurst(unsigned long *buffer,unsigned int len,int loops);
-unsigned long CalcShift(int min_loops);
+int RdCtrBurst(unsigned long *buffer,unsigned int len, int localloops, char* memptr, unsigned int memsize);
+unsigned long CalcShift(int min_loops, char* memptr, unsigned int memsize);
 unsigned int capture(unsigned char in,int *counter,unsigned char *ov);
+void setDelay(int d);
+int getDelay(void);
 #endif

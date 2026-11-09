@@ -1,8 +1,16 @@
-#******************************************************************************
-#******************************************************************************
+#*************************************************************************
+# Copyright IBM Corp. 2023
+#
+# Licensed under the Apache License 2.0 (the "License"). You may not use
+# this file except in compliance with the License. You can obtain a copy
+# in the file LICENSE in the source distribution.
+#*************************************************************************
 
 # Makefile needs to define this as relative path from Makefile's dir to the base of ICC source dir
 ICC_ROOT=..
+
+HOSTNAME=$(shell hostname)
+$(warning HOSTNAME=$(HOSTNAME))
 
 # This is the version tag inserted into the ICC shared library names
 # This exists to allow us to have both a certified and non-certified ICC in
@@ -32,17 +40,17 @@ OFFICIAL_CFLAGS = -DICC_OFFICIAL_BUILD -DVTAG=$(VTAG)
 SIGN_COMMAND    = /build/build/scripts/signwindowsfile.ksh
 
 #-- Directories
-PACKAGE_DIR    = ../package
-NOSHIP_DIR 	   = $(PACKAGE_DIR)/NOSHIP
+PACKAGE_DIR    = $(ICC_ROOT)/package
 RTE_DIR        = $(PACKAGE_DIR)/icc
 SDK_DIR        = $(PACKAGE_DIR)/iccsdk
+NOSHIP_DIR 	   = $(PACKAGE_DIR)/NOSHIP
 NOSHIP_RTE_DIR = $(NOSHIP_DIR)/icc
 PRNG_DIR       = fips-prng
 TRNG_DIR       = TRNG
 OSSL_RTE_DIR   = $(RTE_DIR)/osslib
 ICC_RTE_DIR    = $(RTE_DIR)/icclib
 NOSHIP_ICC_RTE_DIR = $(NOSHIP_RTE_DIR)/icclib
-ICCPKG_DIR     = ../iccpkg
+ICCPKG_DIR     = $(ICC_ROOT)/iccpkg
 
 
 #- Default targets, before the makefile stubs below (some of which
@@ -63,6 +71,14 @@ include ./icc_defs.mk
 include ./zlib.mk
 
 
+#-- Non IBM PKCS#11 headers, not part of the build tree
+#   they need to be downloaded from www.rsa.com and put "somewhere"
+#   first
+
+# Where they are on our file server
+PKCS11_ROOT_DIR     = /build/vendor_apis/
+# The part of the path we need
+PKCS11_HDRS         = pkcs11/v2.20/rsa/inc/
 
 #--- What we need to build
 # Moved to icc_defs.mk , platform specific
@@ -145,6 +161,7 @@ ctx: show_version_info
 	-uname -a; pwd
 
 all: ctx build_all package_all
+	@echo $@ made
 
 #- Create the ICC source code
 #- This is typically run once on one machine then tar'd up and distributed
@@ -166,7 +183,7 @@ create_openssl: ../openssl_source/$(OPENSSL_VER)-icc.tar.gz
 	   tar xzf ../openssl_source/$(OPENSSL_VER)-icc.tar.gz ; \
 	   sleep 1 ; \
 	   mv openssl ../$(OPENSSL_VER) ; \
-	   chmod +x ../$(OPENSSL_VER)/Configure ; \
+	   chmod +x ../$(OPENSSL_VER)/Configure ../$(OPENSSL_VER)/tools/c99.sh ; \
 	   cd ..; \
 	   rm -rf x; \
 	)
@@ -180,6 +197,7 @@ create_openssl: ../openssl_source/$(OPENSSL_VER)-icc.tar.gz
 	)
 # test if the extract worked
 	cd ../$(OPENSSL_VER)
+	-rm Build_OSSL_Complete
 
 #- Create the OpenSSL sources from tarfile and patches on zOS
 #- This has NO automated dependencies as that messes the automated builds
@@ -204,12 +222,34 @@ create_openssl_zos: ../openssl_source/$(OPENSSL_VER).tar.gz
 	   cp ../openssl_source/tools/c99.sh . ;\
 	)
 
+$(SDK_DIR): $(PACKAGE_DIR)
+	$(MKDIR) $@
+
+$(RTE_DIR): $(PACKAGE_DIR)
+	$(MKDIR) $@
+
+$(ICC_RTE_DIR): $(RTE_DIR)
+	$(MKDIR) $@
+
+#- Make directory for OpenSSL shared library
+$(OSSL_RTE_DIR): $(RTE_DIR)
+	$(MKDIR) $@
+
+$(NOSHIP_DIR): $(PACKAGE_DIR)
+	$(MKDIR) $@
+
+$(NOSHIP_RTE_DIR): $(NOSHIP_DIR)
+	$(MKDIR) $@
+
+$(NOSHIP_ICC_RTE_DIR): $(NOSHIP_RTE_DIR)
+	$(MKDIR) $@
+
 #- Build and run the code generator if necsssary
 #- We typically only do this on one (fast) platform as setup for the
 #- builds. Then copy the populated source tree to the other build machines
 #- Avoids the Java "write once - debug everywhere" problem
 #- 
-create_dirs:
+create_dirs: $(NOSHIP_DIR) $(NOSHIP_RTE_DIR) $(NOSHIP_ICC_RTE_DIR)
 	-$(MKDIR) exports ../iccpkg/exports
 	-$(MKDIR) ../icc_test
 	-$(MKDIR) ../package
@@ -217,9 +257,6 @@ create_dirs:
 	-$(MKDIR) ../package/icc
 	-$(MKDIR) ../package/icc/icclib
 	-$(MKDIR) ../package/icc/osslib
-	-$(MKDIR) $(NOSHIP_DIR)
-	-$(MKDIR) $(NOSHIP_RTE_DIR)
-	-$(MKDIR) $(NOSHIP_ICC_RTE_DIR)
 #       Delete these files they aren't used any more
 	-$(RM) deleted/*
 
@@ -258,29 +295,27 @@ create_icc_no_legacy: ICC_ver.txt create_dirs functions.txt \
 
 # Note that this will edit a controlled file (icc/functions.txt) so don't check it in!
 create_icc_FIPS: buildinfo.h
-	cp functions.txt functions.txt.bak
+	if [ ! -e functions.txt.bak ] ; then cp functions.txt functions.txt.bak ; fi
 	sed -i 's/^# non-FIPS;$$/# FIPS;/' functions.txt
 	sed -i 's/^PREFIX=N;$$/PREFIX=C;/' functions.txt
-	sed -i 's/ICC_VERSION_REL .$$/ICC_VERSION_REL 8/' iccversion.h
-	sed -i 's/ICC_VERSION_MOD .$$/ICC_VERSION_MOD 1/' icc_minor_version.h
-	sed -i 's/ICC_VERSION_MOD .$$/ICC_VERSION_MOD 1/' buildinfo.h
-	sed -i 's/8.9.6$$/8.8.1/' icc_curr_version
-	sed -i 's/8.8.0$$/8.8.1/' icc_curr_version
-	sed -i 's/8.9/8.8/' buildinfo.h
-	sed -i 's/^VTAG=085$$/VTAG=084/' VTAG.mk
+	sed -i 's/VTAG=085$$/VTAG=084/' VTAG.mk
+	echo 'FIPS ICC builds have convention of even number release, E.g. 8.8.1, non-FIPS 8.9.1'
+	cat icc_curr_version
+
+# needs 'make ... ICC_VERSION_VER=x ICC_VERSION_REL=y ICC_VERSION_MOD=z set_icc_version' to get "x.y.z" as version number
+set_icc_version: buildinfo.h
+	echo 'ICC_VERSION_VER.ICC_VERSION_REL.ICC_VERSION_MOD=$(ICC_VERSION_VER).$(ICC_VERSION_REL).$(ICC_VERSION_MOD)'
+	if [ ! -e iccversion.h.bak ] ; then cp iccversion.h iccversion.h.bak ; fi
+	sed -i 's/define ICC_VERSION_REL ..*$$/define ICC_VERSION_REL $(ICC_VERSION_REL)/' iccversion.h
+	sed -i 's/define ICC_VERSION_MOD ..*$$/define ICC_VERSION_MOD $(ICC_VERSION_MOD)/' iccversion.h
+	if [ ! -e icc_minor_version.h.bak ] ; then cp icc_minor_version.h icc_minor_version.h.bak ; fi
+	sed -i 's/define ICC_VERSION_MOD ..*$$/define ICC_VERSION_MOD $(ICC_VERSION_MOD)/' icc_minor_version.h
+	if [ ! -e buildinfo.h.bak ] ; then cp buildinfo.h buildinfo.h.bak ; fi
+	sed -i 's/define ICC_VERSION_MOD ..*$$/define ICC_VERSION_MOD $(ICC_VERSION_MOD)/' buildinfo.h
+	sed -i 's/8.9/$(ICC_VERSION_VER).$(ICC_VERSION_REL)/' buildinfo.h
+	if [ ! -e icc_curr_version.bak ] ; then cp icc_curr_version icc_curr_version.bak ; fi
+	echo '$(ICC_VERSION_VER).$(ICC_VERSION_REL).$(ICC_VERSION_MOD)' > icc_curr_version
 	
-# The reverse of above - note that this is what should be checked in by default
-# We only rarely need to build a FIPS module.
-create_icc_non_FIPS: buildinfo.h
-	cp functions.txt functions.txt.bak
-	sed -i 's/^# FIPS;$$/# non-FIPS;/' functions.txt
-	sed -i 's/^PREFIX=C;$$/PREFIX=N;/' functions.txt
-	sed -i 's/ICC_VERSION_REL .$$/ICC_VERSION_REL 9/' iccversion.h
-	sed -i 's/ICC_VERSION_MOD .$$/ICC_VERSION_MOD 6/' icc_minor_version.h
-	sed -i 's/ICC_VERSION_MOD .$$/ICC_VERSION_MOD 6/' buildinfo.h
-	sed -i 's/8\.8\..$$/8.9.6/' icc_curr_version
-	sed -i 's/8\.8/8.9/' buildinfo.h
-	sed -i 's/^VTAG=084$$/VTAG=085/' VTAG.mk
 
 
 # MUPPET comes from muppet.mk written by the ICCencapsulator
@@ -301,15 +336,21 @@ show_version_info: buildinfo.h
 	echo icc_curr_version
 	cat icc_curr_version
 	grep "PREFIX=" functions.txt
+	head -20 $(ICC_ROOT)/iccpkg/gsk_wrap2_a.c
 	echo MUPPET=$(MUPPET)
 	echo MYICC=$(MYICC)
 	echo IS_FIPS=$(IS_FIPS)
+
+# defaults
+ICC_VERSION_VER=8
+ICC_VERSION_REL=8
+ICC_VERSION_MOD=0
 
 #
 # Just an annoyance during dev. builds. It's fine if it's empty. Typically a dev build.
 #
 buildinfo.h:
-	touch buildinfo.h
+	touch $@
 
 #- Run BVT
 # no dependancies - that causes re-signing into .sig files since they've been deleted
@@ -424,6 +465,7 @@ icc_dbg: $(ICCTEST)
 LIBOBJS1 =   fips$(OBJSUFX)  \
 	platform$(OBJSUFX) \
 	iccerr$(OBJSUFX) status$(OBJSUFX) \
+	iccsecurezero$(OBJSUFX) \
 	fips-prng-RAND$(OBJSUFX) fips-prng-err$(OBJSUFX) \
 	SP800-90$(OBJSUFX) \
 	SP800-90HashData$(OBJSUFX) \
@@ -458,14 +500,20 @@ LIBOBJS =   $(LIBOBJS1) platfsl$(OBJSUFX) $(OSSL_XTRA_OBJ)
 # and selectively copied
 #
 #Note: BUILD_OBJS coming from $(OPSYS)_.mk includes BASE_OBJS (from BASE_OSSL_FILES.mk)
+tmp:
+	$(MKDIR) $@
 
-tmp/tmp/dummyfile:  Build_OSSL_Complete tmp/dummyfile
-	-$(MKDIR) tmp/tmp
-	(cd tmp ; \
-	$(CP) $(BUILD_OBJS) tmp/ ;\
-	cd .. ; \
-	)
-	touch tmp/tmp/dummyfile
+tmp/tmp: tmp
+	$(MKDIR) $@
+
+cp_build_objs: tmp/tmp tmp/dummyfile
+	-cd tmp; $(CP) $(BUILD_OBJS) tmp/
+
+tmp/tmp/dummyfile: Build_OSSL_Complete cp_build_objs
+	touch $@
+
+$(GSK_SDK)/unstripped : $(GSK_SDK)
+	$(MKDIR) $@
 
 #- Build ICC shared library
 #- $(ASMOBJS) is an UGLY hack to cater for small assembler files
@@ -473,15 +521,22 @@ tmp/tmp/dummyfile:  Build_OSSL_Complete tmp/dummyfile
 #- Split this into 2 phases for the OS/X fat binaries work - resolves circular dependencies
 # this is target for icclib085 shared library
 
-$(ICCDLL_NAME): privkey.rsa icclib$(OBJSUFX) $(LIBOBJS)  $(STLPRFX)zlib$(STLSUFX) tmp/tmp/dummyfile  signer$(EXESUFX) tracer.h extsig.h
+$(ICCDLL_NAME): Makefile privkey.rsa icclib$(OBJSUFX) $(LIBOBJS) $(STLPRFX)zlib$(STLSUFX) tmp/tmp/dummyfile signer$(EXESUFX) $(GSK_SDK)/unstripped $(ICC_RTE_DIR) $(NOSHIP_ICC_RTE_DIR)
 	$(SLD) $(SLDFLAGS) $(ICCLIB_LNK) $(EXPORT_FLAG)$(ICCLIB_EXPFILE)  icclib$(OBJSUFX) $(LIBOBJS) $(STLPRFX)zlib$(STLSUFX) \
 		tmp/tmp/*$(OBJSUFX)  $(LDLIBS)
-#- Unstripped goes into NOSHIP
+#- Unstripped goes into NOSHIP and sdk
 	$(OPENSSL_PATH_SETUP) ./signer$(EXESUFX) ICCSIG.txt privkey.rsa -SELF -FILE $(ICCDLL_NAME) $(TWEAKS) "ICC_ALLOW_2KEY3DES=1"
 	$(CP) ICCSIG.txt $(NOSHIP_ICC_RTE_DIR)/
+#- Unstripped goes into NOSHIP and sdk
+ifeq ($(findstring WIN, $(OPSYS)), WIN)
+	$(CP) $@ $(GSK_SDK)/
+else
 	$(CP) $@ $(NOSHIP_ICC_RTE_DIR)/$@.unstripped
-#- Regular lib
+	$(CP) $@ $(GSK_SDK)/unstripped
+	$(CP) ICCSIG.txt $(GSK_SDK)/unstripped
 	$(STRIP) $@
+endif
+#- Regular lib
 	$(OPENSSL_PATH_SETUP) ./signer$(EXESUFX) ICCSIG.txt privkey.rsa -SELF -FILE $(ICCDLL_NAME) $(TWEAKS) "ICC_ALLOW_2KEY3DES=1"
 	$(CP) ICCSIG.txt $(ICC_RTE_DIR)/
 
@@ -503,7 +558,7 @@ $(ICC_RTE_DIR)/$(SHLPRFX)icclib$(VTAG).dll: $(ICCDLL_NAME) signer$(EXESUFX)
 		fi ;\
 	)
 	$(CP) $@ $(ICCDLL_NAME)
-	$(OPENSSL_PATH_SETUP) ./signer$(EXESUFX) ICCSIG.txt privkey.rsa -SELF -FILE  $(ICCDLL_NAME) $(TWEAKS)
+	./signer$(EXESUFX) ICCSIG.txt privkey.rsa -SELF -FILE  $(ICCDLL_NAME) $(TWEAKS)
 	$(CP) $(ICCDLL_NAME) $@
 	$(CP) ICCSIG.txt $(ICC_RTE_DIR)/ 
 	-$(CP) $(SHLPRFX)icclib$(VTAG).pdb $(SDK_DIR)/
@@ -530,7 +585,17 @@ icclib$(OBJSUFX): icclib.c loaded.c loaded.h \
 		-DINSTDIR=\""$(GSK_GLOBAL)"\" -I../$(ZLIB) \
 		-I./  -I$(SDK_DIR) -I$(OSSLINC_DIR) -I$(OSSL_DIR) -I$(API_DIR) icclib.c
 
+#- Build an exectuable version of libicclib.so so we can debug the POST code
+icclib_sa.c: icclib.c tracer.h
+	$(CP) icclib.c $@
 
+icclib_sa$(OBJSUFX): icclib_sa.c loaded.c loaded.h tracer.h extsig.h
+	$(CC) -DICCDLL_NAME="\"icclib_sa$(EXESUFX)\"" -DSTANDALONE_ICCLIB  -DOPSYS="\"$(OPSYS)\"" -DMYNAME=icclib_sa$(VTAG) $(CFLAGS) \
+		 -I../$(ZLIB) -I./  -I$(SDK_DIR) -I$(OSSLINC_DIR) -I$(OSSL_DIR) -I$(API_DIR) icclib_sa.c
+
+icclib_sa$(EXESUFX): icclib_sa$(OBJSUFX) $(LIBOBJS) $(STLPRFX)zlib$(STLSUFX) tmp/tmp/dummyfile extsig$(OBJSUFX) signer$(EXESUFX)
+	$(LD) $(LDFLAGS)  icclib_sa$(OBJSUFX) $(LIBOBJS) $(STLPRFX)zlib$(STLSUFX)  tmp/tmp/*$(OBJSUFX) $(LDLIBS)
+	./signer$(EXESUFX) ICCLIB_SA.txt  privkey.rsa -SELF -FILE icclib_sa$(EXESUFX) $(TWEAKS)
 
 # Code specifically for Java/JCEPlus
 OS_helpers$(OBJSUFX): OS_helpers.c
@@ -707,15 +772,20 @@ platform$(OBJSUFX): platform.c platform.h
 platfsl$(OBJSUFX): platfsl.c platfsl.h platform.h
 	$(CC) $(CFLAGS)  -I$(OSSLINC_DIR) -I$(OSSL_DIR)  -I./  -I$(SDK_DIR)/ platfsl.c
 
+iccsecurezero$(OBJSUFX): iccsecurezero.c platform.h
+	$(CC) $(CFLAGS) iccsecurezero.c
+
 
 #- Build ICC static library stub
+# Only one file icc.o (or newicc.o)
 $(STLPRFX)icc$(STLSUFX):  $(MYICC)$(OBJSUFX)
 	$(AR) $(ARFLAGS) $(MYICC)$(OBJSUFX) $(ICCLIB_LINK)  
 
-# Copy the ICC static library stub to the sdk dmake OPSYS=${OPSYS} icc;irectory
-# Done this way so we can build fat libs on OS/X without circular dependencies
-$(ICCLIB): $(SDK_DIR) $(STLPRFX)icc$(STLSUFX)
+# Copy the ICC static library stub to the sdk directory
+# Copy the object too since we need it for linking FIPS. Ref aix64 where we could not extract from .a
+$(ICCLIB): $(SDK_DIR) $(MYICC)$(OBJSUFX) $(STLPRFX)icc$(STLSUFX)
 	$(CP)  $(STLPRFX)icc$(STLSUFX) $@
+	$(CP) $(MYICC)$(OBJSUFX) $(SDK_DIR)
 
 
 #- Compile the ICC static stub library source
@@ -757,7 +827,7 @@ $(OSSLOBJ_DIR)/$(SHLPRFX)crypto$(SHLSUFX).$(OPENSSL_LIBVER): Build_OSSL_Complete
 #
 Build_OSSL_Complete: $(OSSL_DIR)/Configure
 	$(BUILD_OSSL)
-	$(RM) $(ICCTEST) ICCTEST_BUILT
+	$(RM) $(ICCTEST) ICCTEST_BUILT tmp/dummyfile
 	touch Build_OSSL_Complete
 
 #- Copy OpenSSL crypto library to package directory
@@ -881,7 +951,11 @@ show_config:
 	echo
 
 show_ossl:
-	echo "E_OBJ       	= " "$(E_OBJ)"
-	echo "ASM_OBJS    	= " "$(ASM_OBJS)"
-	echo "SLIBCRYPTO  	= " "$(SLIBCRYPTO)"
-	echo "SLIBSSL     	= " "$(SLIBSSL)"
+	@echo "E_OBJ       	= " "$(E_OBJ)"
+	@echo "ASM_OBJS    	= " "$(ASM_OBJS)"
+	@echo "SLIBCRYPTO  	= " "$(SLIBCRYPTO)"
+	@echo "SLIBSSL     	= " "$(SLIBSSL)"
+	@echo REALOPENSSL = "$(REALOPENSSL)"
+	@echo MYOPENSSL = "$(MYOPENSSL)"
+	@echo OPENSSL_PATH_SETUP = "$(OPENSSL_PATH_SETUP)"
+	

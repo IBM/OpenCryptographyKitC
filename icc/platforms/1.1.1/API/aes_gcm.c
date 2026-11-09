@@ -1,14 +1,10 @@
-/*----------------------------------------------------------------------------
-// Licensed materials - Property of IBM                                      
+/*************************************************************************
+// Copyright IBM Corp. 2023
 //
-// (C) Copyright IBM Corp.  2007,2015
-// This code was donated to the OpenSSL project under the terms of the 
-// OpenSSL license.
-//
-// Rewrite to use OpenSSL (dev) code
-//
-// Needs a total rewrite for zSeries.
-//---------------------------------------------------------------------------*/
+// Licensed under the Apache License 2.0 (the "License"). You may not use
+// this file except in compliance with the License. You can obtain a copy
+// in the file LICENSE in the source distribution.
+*************************************************************************/
 
 
 #ifndef AES_DEBUG
@@ -161,22 +157,28 @@ int AES_GCM_GenerateIV_NIST(AES_GCM_CTX *gcm_ctx, int ivlen,
    
 int AES_GCM_GenerateIV(AES_GCM_CTX *gcm_ctx,unsigned char out[8]) 
 {
-  int rv = 1;
+  int rv = 0;
   AES_GCM_CTX_t *ctx = NULL;
   const EVP_CIPHER *cipher = NULL; 
   unsigned char IVkeybuf[16];  /*!< Transient encrypt key */
   int outl = 0;
 
+  if (gcm_ctx == NULL || out == NULL)
+      goto done;
+  
   ctx = (AES_GCM_CTX_t *)gcm_ctx;
   
   /* Obtain the block cipher */
-  if(NULL == cipher) {
     cipher = EVP_get_cipherbyname("blowfish");
+  if (NULL == cipher) {
+      goto done;                       /* blowfish unavailable (FIPS mode etc.) */
   }
   /* Have we used this for IV generation before ? */
   if(NULL == ctx->IVctx) {
     /* Create an encryption context for this IV generator */
     ctx->IVctx = EVP_CIPHER_CTX_new();
+    if (ctx->IVctx == NULL)
+        goto done;                   /* allocation failure */
   }
   /* Initialize from scratch the first time, 
      and every 2^32'th time round the block 
@@ -196,22 +198,13 @@ int AES_GCM_GenerateIV(AES_GCM_CTX *gcm_ctx,unsigned char out[8])
   AES_gcm_inc(ctx->IVcounter,8);
   /* Increment the number of cycles, and ensure we'll restart again at 2^32 */
   ctx->count = (ctx->count +1) & 0xffffffff;  
+  rv = 1; /* O.K. */
+done:
+  ICC_securezero(IVkeybuf, sizeof(IVkeybuf));   /* always scrub key */
   return rv;
 }
 
 
-
-
-
-
-/*==========================================================================
-
-Wrapped around OpenSSL's asm boosted monster 
-
-
-
-
-===========================================================================*/
 
 
 
@@ -239,10 +232,7 @@ int AES_GCM_CTX_ctrl(AES_GCM_CTX *ain, int mode, int accel, void *ptr)
 AES_GCM_CTX *AES_GCM_CTX_new()
 {
   AES_GCM_CTX_t *ctx = NULL;
-  ctx = OPENSSL_malloc(sizeof(AES_GCM_CTX_t));
-  if(NULL != ctx) {
-    memset(ctx,0,sizeof(AES_GCM_CTX_t));
-  }
+  ctx = OPENSSL_zalloc(sizeof(AES_GCM_CTX_t));
   return (AES_GCM_CTX *)ctx;
 }
 
@@ -261,7 +251,7 @@ void AES_GCM_CTX_free(AES_GCM_CTX *ctx)
     EVP_CIPHER_CTX_cleanup(a->IVctx);
     EVP_CIPHER_CTX_free(a->IVctx);
   }
-  memset(a,0,sizeof(AES_GCM_CTX_t));
+  ICC_securezero(a,sizeof(AES_GCM_CTX_t));
   OPENSSL_free(ctx);
 }
 static void XOR(unsigned char *a,unsigned char *b,int l)
@@ -321,11 +311,23 @@ int AES_GCM_Init(ICClib *pcb, AES_GCM_CTX *ain, unsigned char *iv, unsigned long
   if (NULL == a->iv) {
     if (ivlen > IVBLEN) {
       a->iv = OPENSSL_malloc(ivlen);
+      if (a->iv == NULL) {
+        return -1;
+      }
     } else {
       a->iv = &(a->ivbuf[0]);
     }
   }
-  if (klen > sizeof(a->key)) {
+
+  /* reccommended but may break existing code */
+  if (key) {
+      /* reject any length that is not a valid AES key size */
+      if (klen != 16 && klen != 24 && klen != 32) {
+          return -1;
+      }
+  }
+  else if (klen > sizeof(a->key)) {
+      /* truncate */
     klen = sizeof(a->key);
   }
 
@@ -379,6 +381,7 @@ int AES_GCM_Init(ICClib *pcb, AES_GCM_CTX *ain, unsigned char *iv, unsigned long
       a->cipher = gcm_256;
       break;
     default:
+      a->cipher = NULL;
       break;
     }
     if (NULL == a->cipher) {
@@ -451,8 +454,10 @@ int AES_GCM_EncryptUpdate(AES_GCM_CTX *ain, unsigned char *aad,
     }
     if (NULL != data) {
       rv = EVP_EncryptUpdate(a->ctx, out, &outl, data, datalen);
+      if (outlen) {
       *outlen = outl;
     }
+  }
   }
   return rv;
   }
@@ -500,7 +505,9 @@ int AES_GCM_EncryptUpdate(AES_GCM_CTX *ain, unsigned char *aad,
       }
       if (NULL != data) {
         rv = EVP_DecryptUpdate(a->ctx, out, &outl, data, datalen);
+        if (outlen) {
         *outlen = outl;
+        }
       }
     }
     return rv;

@@ -1,16 +1,12 @@
-/*************************************************************************
-// Copyright IBM Corp. 2023
-//
-// Licensed under the Apache License 2.0 (the "License").  You may not use
-// this file except in compliance with the License.  You can obtain a copy
-// in the file LICENSE in the source distribution.
-*************************************************************************/
 
-/*************************************************************************
-// Description: Data tables for SP800-90 Cipher based PRNG structures and self
-//test
-//
-*************************************************************************/
+/*
+// Copyright IBM Corp. 2023
+// Licensed under the Apache License 2.0 (the "License").  You may not use
+// this file except in compliance with the License.  You can obtain a copy
+// in the file LICENSE in the source distribution.
+*/
+/* Description: Data tables for SP800-90 Cipher based PRNG structures and self test
+*/
 
 #include "icclib.h"
 #include "ds.h"
@@ -128,7 +124,7 @@ static void Update(SP800_90PRNG_Data_t *pctx)
   xor(pctx->T,pctx->T,pctx->C,pctx->prng->seedlen);
   /* Copy K & V from pctx->T and setup the new key */
   SetKV(pctx);  
-  memset(pctx->T,0,pctx->prng->seedlen);
+  ICC_securezero(pctx->T,pctx->prng->seedlen);
 }
 /*!
   @brief SP800-90 Cipher derivation function
@@ -154,6 +150,11 @@ static void Cipher_df(SP800_90PRNG_Data_t *pctx,DS *dsin)
   EVP_CIPHER_CTX *ctx = NULL;
 
   ctx = EVP_CIPHER_CTX_new();
+  if (NULL == ctx) {
+    pctx->error_reason = ERRAT("EVP_CIPHER_CTX_new failed");
+    pctx->state = SP800_90ERROR;
+    return;
+  }
   
   memset(IV,0,pctx->prng->OBL);
   DS_Reset(dsin);
@@ -185,6 +186,7 @@ static void Cipher_df(SP800_90PRNG_Data_t *pctx,DS *dsin)
   if( 1 != EVP_EncryptInit(ctx,pctx->alg.cipher,(unsigned char *)K,NULL)  ) {
     pctx->error_reason = ERRAT("Encrypt Init failed");
     pctx->state = SP800_90ERROR;
+    EVP_CIPHER_CTX_free(ctx);
     return;
   }
   outl = pctx->prng->seedlen; 
@@ -204,6 +206,7 @@ static void Cipher_df(SP800_90PRNG_Data_t *pctx,DS *dsin)
   if( 1 != EVP_EncryptInit(ctx,pctx->alg.cipher,pctx->T,NULL)  ) {
     pctx->error_reason = ERRAT("Encrypt Init failed");
     pctx->state = SP800_90ERROR;
+    EVP_CIPHER_CTX_free(ctx);
     return;
   }
   i = EVP_CIPHER_key_length(pctx->alg.cipher);
@@ -218,6 +221,7 @@ static void Cipher_df(SP800_90PRNG_Data_t *pctx,DS *dsin)
 	(eol != (int)pctx->prng->OBL)  ) {
       pctx->error_reason = ERRAT("Encrypt Update failed");
       pctx->state = SP800_90ERROR;
+      EVP_CIPHER_CTX_free(ctx);
       return;
     }
     k = (outl > pctx->prng->OBL) ? pctx->prng->OBL: outl;
@@ -226,7 +230,7 @@ static void Cipher_df(SP800_90PRNG_Data_t *pctx,DS *dsin)
     outl -= k;
   }
   /* And clear our scratch area */
-  memset(pctx->T,0,pctx->prng->OBL);
+  ICC_securezero(pctx->T,pctx->prng->OBL);
   EVP_CIPHER_CTX_cleanup(ctx);
   EVP_CIPHER_CTX_free(ctx);
 }
@@ -284,7 +288,7 @@ SP800_90STATE CIPHER_Instantiate(PRNG_CTX *ctx,
   /* Run "Update" with the provided seed */
   Update(pctx);
   /* And clean up the supplied AAD */
-  memset(pctx->C,0,pctx->prng->seedlen);
+  ICC_securezero(pctx->C,pctx->prng->seedlen);
   return pctx->state;
 }
 /*!
@@ -308,7 +312,7 @@ SP800_90STATE CIPHER_ReSeed(PRNG_CTX *ctx,
   Cipher_df(pctx,&ds);
   Update(pctx);
   /* And clean up the supplied data */
-  memset(pctx->C,0,pctx->prng->seedlen);
+  ICC_securezero(pctx->C,pctx->prng->seedlen);
   return pctx->state;
  
 }
@@ -372,9 +376,9 @@ SP800_90STATE CIPHER_Generate(PRNG_CTX *ctx,
   /* 
      Clear our temporary output buffer, 
   */
-  memset(pctx->T,0,pctx->prng->OBL);
+  ICC_securezero(pctx->T,pctx->prng->OBL);
   /* And clean up the supplied data */
-  memset(pctx->C,0,pctx->prng->seedlen); 
+  ICC_securezero(pctx->C,pctx->prng->seedlen);
   return pctx->state;
 }
 /*!

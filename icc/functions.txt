@@ -1,8 +1,8 @@
 #-------------------------------------------------------------------------------;
 # Copyright IBM Corp. 2023;
 #;
-# Licensed under the Apache License 2.0 (the "License").  You may not use;
-# this file except in compliance with the License.  You can obtain a copy;
+# Licensed under the Apache License 2.0 (the "License"). You may not use;
+# this file except in compliance with the License. You can obtain a copy;
 # in the file LICENSE in the source distribution.;
 #-------------------------------------------------------------------------------;
 #;
@@ -15,7 +15,7 @@
 #;
 #Comments start with an # and end with an ;
 #In fact, all statements must end with an ;
-# AND NO TABS ;
+# And no tabs ;
 #;
 # Namespacing;
 #;
@@ -1075,7 +1075,7 @@ OPENSSLPREFIX=;
 #! @param generator is a small number > 1, typically 2 or 5.;
 #! @param callback Feedback for a progress indicator. See the OpenSSL docs. Typically, set this to NULL.;  
 #! @param cb_arg Information to be passed to the callback method when it is called. Typically, set this to NULL;
-#! While in theory these paramaters could be used we can envisage no ICC consumer scenario ;
+#! While in theory these paramaters could be used we can envisage no IBM application scenario ;
 #! where it would be useful to set these to non-NULL values ;
 #! @return an pointer to a newly allocated DH structure containing both the public and private keys;
 
@@ -1108,7 +1108,7 @@ OPENSSLPREFIX=;
 #;
 #! @brief DER encode DH key negotiation parameters.;
 #! Generates binary asn.1, you may need to BASE64 Encode after;
-#! @param a a pointer to a DH structure;
+#! @param a pointer to a DH structure;
 #! @param pp - **pp is not NULL and *pp is not NULL then that memory will be updated.; 
 #! - **pp is not NULL and *pp is NULL then memory is allocated and it will be updated with the DER encoding. ;
 #! - A NULL value of '**pp' will result in the required size being returned.;
@@ -1213,8 +1213,8 @@ OPENSSLPREFIX=;
 #! @param counter_ret the iteration count is placed in *counter_ret unless this is NULL;
 #! @param h_ret The counter used for finding a generator is placed in *h_ret unless this is NULL;
 #! @param callback Feedback for a progress indicator. See the OpenSSL docs. Typically, set this to NULL.;  
-#! @param cb_arg Information to be passed to the callback method when it is called. Typically, set this to NULL;
-#! While in theory these paramaters could be used we can envisage no ICC consumer scenario ;
+#! @param cb_arg Information to be passed to the callback method when it is called. Typically, set this to NULL in IBM code;
+#! While in theory these paramaters could be used we can envisage no IBM application scenario ;
 #! where it would be useful to set these to non-NULL values ;
 #! @return a pointer to a newly allocated DSA structure containing both the public and private keys or NULL on failure;
 
@@ -1225,6 +1225,7 @@ OPENSSLPREFIX=;
 #! @brief DER decode PKCS#1 parameter data into a DSA structure.; 
 #! Expects binary asn.1, you may need to BASE64 decode first;
 #! @param a pointer to a pointer to a DSA structure;
+#! @param a pointer to a pointer to a key.; 
 #!        If this is NULL a new DSA structure will be allocated.;
 #! @param pp a pointer to a pointer to the DER encoded data.;
 #!        This value is updated to point one byte past the end of the input;
@@ -3585,6 +3586,7 @@ required buffer size. ;
 #!       - If this call fails the ICC API will shut down;
 
 0abcdP int IntegrityCheck(ICC_STATUS * status);
+
 
 #! @brief return a list of platform specific accelation helpers ;
 #! for use by Java Security (only) ;

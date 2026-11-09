@@ -1,8 +1,8 @@
 /*************************************************************************
 // Copyright IBM Corp. 2023
 //
-// Licensed under the Apache License 2.0 (the "License").  You may not use
-// this file except in compliance with the License.  You can obtain a copy
+// Licensed under the Apache License 2.0 (the "License"). You may not use
+// this file except in compliance with the License. You can obtain a copy
 // in the file LICENSE in the source distribution.
 *************************************************************************/
 
@@ -103,7 +103,7 @@ unsigned int Personalize(unsigned char *buffer)
     tmp += sizeof(pid);
 
     memcpy(tmp,&tid,sizeof(tid));
-    tmp += sizeof(pid);
+    tmp += sizeof(tid);
 
     strncpy((char *)tmp,name,sizeof(name)-1);
 

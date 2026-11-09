@@ -1,7 +1,7 @@
 /*************************************************************************
 // Copyright IBM Corp. 2023
 //
-// Licensed under the Apache License 2.0 (the "License").  You may not use
+// Licensed under the Apache License 2.0 (the "License"). You may not use
 // this file except in compliance with the License. You can obtain a copy
 // in the file LICENSE in the source distribution.
 *************************************************************************/
@@ -185,7 +185,10 @@ SP800_90STATE TRNG_NOISE_Generate(PRNG_CTX *ctx,
     tctx->state = SP800_90ERROR;
     tctx->error_reason = ERRAT("NRBG has not been initialised");
   } else {
-    trng->econd.impl.gb(&(trng->econd),buffer,blen);     
+    if(TRNG_OK != trng->econd.impl.gb(&(trng->econd),buffer,blen)) {
+      tctx->state = SP800_90ERROR;
+      tctx->error_reason = ERRAT("TRNG noise source reported an error");
+    }
   }
   return tctx->state;
 }
@@ -672,7 +675,6 @@ SP800_90PRNG_t SPTRNG_FIPS_NOISE = {
     },
   },
 };
-
 SP800_90PRNG_t SPTRNG_ALT_NOISE = {
   SP800_TRNG_ALT_NOISE,
   20,          /* retained seedlen */

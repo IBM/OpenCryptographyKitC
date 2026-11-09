@@ -1,15 +1,15 @@
 /*************************************************************************
-// Copyright IBM Corp. 2023
-//
-// Licensed under the Apache License 2.0 (the "License").  You may not use
-// this file except in compliance with the License.  You can obtain a copy
-// in the file LICENSE in the source distribution.
+** Copyright IBM Corp. 2023
+**
+** Licensed under the Apache License 2.0 (the "License"). You may not use
+** this file except in compliance with the License. You can obtain a copy
+** in the file LICENSE in the source distribution.
 *************************************************************************/
 
 /*************************************************************************
-// Description: Provides a layer of abstraction/indirection for platform
-//              specific code.
-//
+** Description: Provides a layer of abstraction/indirection for platform
+**              specific code.
+**
 *************************************************************************/
 
 #ifndef INCLUDED_PLATFORM
@@ -67,7 +67,7 @@ extern "C" {
   /* # define WIN32_LEAN_AND_MEAN */
 # include <windows.h>
 
-#define strcasecmp(x,y) _stricmp(x,y)
+#  define strcasecmp(a,b) _stricmp(a,b)
 
 typedef HANDLE ICC_Mutex;
 
@@ -264,7 +264,12 @@ typedef pthread_mutex_t ICC_Mutex;
   /*! @brief prototype for a pointer to free() used by OpenSSL */
   typedef void  (*FreeFunc) (void *);
 
-
+/* Platform independent */
+ICCSTATIC int ICC_CreateMutex(ICC_Mutex* mutexPtr);
+ICCSTATIC int ICC_LockMutex(ICC_Mutex* mutexPtr);
+ICCSTATIC int ICC_UnlockMutex(ICC_Mutex* mutexPtr);
+ICCSTATIC int ICC_DestroyMutex(ICC_Mutex* mutexPtr);
+void ICC_securezero(void* s, size_t n);
 
 
 #if !defined(ICC_Malloc)

@@ -1,8 +1,8 @@
 /*************************************************************************
 // Copyright IBM Corp. 2023
 //
-// Licensed under the Apache License 2.0 (the "License").  You may not use
-// this file except in compliance with the License.  You can obtain a copy
+// Licensed under the Apache License 2.0 (the "License"). You may not use
+// this file except in compliance with the License. You can obtain a copy
 // in the file LICENSE in the source distribution.
 *************************************************************************/
 
@@ -12,7 +12,6 @@
 //                                                                             
 *************************************************************************/
 
-
 /* Includes */
 /* ======== */
 #include <stdio.h>
@@ -21,7 +20,7 @@
 #include <unistd.h>
 #include <time.h>
 #endif
-#include "osslver.h"
+
 #include "openssl/rand.h"
 #include "openssl/crypto.h"
 #include "icclib.h"
@@ -276,6 +275,8 @@ static int init_prng(int i) {
 int RAND_FIPS_init(const void *seed, const unsigned int num) {
   int rc = RAND_R_PRNG_OK;
   int i = 0;
+  int tctx_mutexes_init = 0;
+  int pctx_mutexes_init = 0;
 
   if (status != INIT) {
     /* Someone else can get in here, grab the lock and do the initialization
@@ -308,7 +309,7 @@ int RAND_FIPS_init(const void *seed, const unsigned int num) {
           rc = RAND_R_PRNG_NOT_INITIALIZED;
           break;
         }
-
+        tctx_mutexes_init++;
       }
     }
 
@@ -330,6 +331,7 @@ int RAND_FIPS_init(const void *seed, const unsigned int num) {
           rc = RAND_R_PRNG_NOT_INITIALIZED;
           break;
         }
+        pctx_mutexes_init++;
       }
     }
 
@@ -344,18 +346,22 @@ int RAND_FIPS_init(const void *seed, const unsigned int num) {
             RNG_CTX_free(pctx[i].rng);
             pctx[i].rng = NULL;
           }
+          if (i < pctx_mutexes_init) {
           ICC_DestroyMutex(&(pctx[i].mtx));
+        }
         }
         ICC_Free(pctx);
         pctx = NULL;
       }
       if (NULL != tctx) {
         for (i = 0; i < N_rngs; i++) {
-          if (NULL != tctx) {
+          if (NULL != tctx[i].rng) {
             RNG_CTX_free(tctx[i].rng);
             tctx[i].rng = NULL;
           }
+          if (i < tctx_mutexes_init) {
           ICC_DestroyMutex(&(tctx[i].mtx));
+        }
         }
         ICC_Free(tctx);
         tctx = NULL;
@@ -547,6 +553,7 @@ static int fips_rand_pseudo_bytes(unsigned char *buf, int num) {
     }
   }
  
+  if( rc == RAND_R_PRNG_OK ) {
   state = RNG_Generate(pctx[tid].rng,buf,num,NULL,0);
 
   /* We could be in a RUN or RESEED state on return
@@ -558,6 +565,7 @@ static int fips_rand_pseudo_bytes(unsigned char *buf, int num) {
   default:
     rc=RAND_R_PRNG_CRYPT_TEST_FAILED;
     break;
+    }
   }
   ICC_UnlockMutex(&(pctx[tid].mtx));
 

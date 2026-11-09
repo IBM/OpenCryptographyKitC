@@ -19,9 +19,10 @@
 
 #include "platform.h"
 #include "TRNG/nist_algs.h"
+#include "TRNG/timer_nonFips.h"
 #include "TRNG/TRNG_ALT.h"
 #include "induced.h"
-#include "ICC_NRBG.h"
+
 
 
 static int fd_alt = -1;
@@ -32,8 +33,9 @@ static int fd_alt = -1;
 
 void ALT_preinit(int reinit)
 {
-  
-  
+#if !((defined(__MVS__)) || (defined(__linux__) && defined(__s390__)))
+  Timer_NOISE_preinit(reinit);
+#endif
 }
 
 
@@ -98,16 +100,15 @@ static int alt_read(unsigned char *buffer,int n)
   default:
 #if !defined(_WIN32)
   /* Some OS's limit the size of reads from /dev/(u)random ==> HPUX */
-   while(k > 0) {
-    i = read(fd_alt,buffer,k);
-    k -= i;
-    if((i > 0) && (k != 0) ) {
-      buffer += i;
-      continue;
-    } else {
+    while (k > 0) {
+        i = read(fd_alt, buffer, k);
+        if (i <= 0) {
+            /* read error or unexpected EOF */
       rv = TRNG_REQ_SIZE;
       break;
     }
+        buffer += i;
+        k -= i;
   }
 #endif
     break;
@@ -187,6 +188,12 @@ TRNG_ERRORS ALT_getbytes(E_SOURCE *E,unsigned char *buffer, int len)
   int i = 0;
 
   rv = alt_read(buffer,len); /* Read from the primary source */
+  if(TRNG_OK == rv) {
+    i = getbytes(buffer,len); /* getbytes xor's data over the buffer */
+    if(i != len) {
+      rv = TRNG_REQ_SIZE;
+    }
+  }
   /*! \induced 221. TRNG_ALT. Fake the failure condition 
 	  from the OS RNG source
   */

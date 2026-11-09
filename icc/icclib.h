@@ -1,8 +1,8 @@
 /*************************************************************************
 // Copyright IBM Corp. 2023
 //
-// Licensed under the Apache License 2.0 (the "License").  You may not use
-// this file except in compliance with the License.  You can obtain a copy
+// Licensed under the Apache License 2.0 (the "License"). You may not use
+// this file except in compliance with the License. You can obtain a copy
 // in the file LICENSE in the source distribution.
 *************************************************************************/
 
@@ -67,7 +67,8 @@ typedef void (*CALLBACK_T)(const char *,int,int);
 /* Pick UP KeyWrap */
 #include "SP800_38F/SP80038F.h" 
 
-
+/* ATSec advised this setting for 8.8.2 FIPS-140-3 */
+#define ICC_TRNG_FIPS_OSR_MIN 5
 
 /* OpenSSL's crypto callbacks don't include calloc
    and we have our own
@@ -116,6 +117,14 @@ const BIGNUM *DH_get_PublicKey (const DH * dh);
 RSA * my_RSA_new();
 
 int my_HMAC_Init(HMAC_CTX *ctx, const void *key, int key_len,const EVP_MD *md);
+unsigned char* my_HKDF_Expand(const EVP_MD* evp_md,
+    const unsigned char* prk, size_t prk_len,
+    const unsigned char* info, size_t info_len,
+    unsigned char* okm, size_t okm_len);
+unsigned char* my_HKDF_Extract(const EVP_MD* evp_md,
+    const unsigned char* salt, size_t salt_len,
+    const unsigned char* key, size_t key_len,
+    unsigned char* prk, size_t* prk_len);
 int my_EVP_DecryptInit(EVP_CIPHER_CTX *ctx,const EVP_CIPHER *type,unsigned char *key, unsigned char *iv);
 int my_EVP_EncryptInit(EVP_CIPHER_CTX *ctx,const EVP_CIPHER *type,unsigned char *key, unsigned char *iv);
 int my_EVP_PKEY_encrypt(unsigned char *enc_key,unsigned char *key,int key_len,EVP_PKEY *pub_key);

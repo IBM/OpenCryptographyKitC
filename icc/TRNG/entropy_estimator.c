@@ -1,8 +1,8 @@
 /*************************************************************************
 // Copyright IBM Corp. 2023
 //
-// Licensed under the Apache License 2.0 (the "License").  You may not use
-// this file except in compliance with the License.  You can obtain a copy
+// Licensed under the Apache License 2.0 (the "License"). You may not use
+// this file except in compliance with the License. You can obtain a copy
 // in the file LICENSE in the source distribution.
 *************************************************************************/
 
@@ -165,12 +165,15 @@ TRNG_ERRORS InitEntropyEstimator(TRNG *trng)
     trng->e.strm.zalloc = izcalloc;
     trng->e.strm.zfree = izfree;
     trng->e.strm.opaque = Z_NULL;
-    deflateInit2(&trng->e.strm,Z_DEFAULT_COMPRESSION,Z_DEFLATED,9,1,Z_DEFAULT_STRATEGY);
+    if(Z_OK != deflateInit2(&trng->e.strm,Z_DEFAULT_COMPRESSION,Z_DEFLATED,9,1,Z_DEFAULT_STRATEGY)) {
+      rv = TRNG_INIT;
+    } else {
     trng->e.strm.avail_out = 2048;
     trng->e.strm.next_out = &(trng->e.out[0]);
     trng->e.EntropyState = 1;
     trng->e.EntropyEstimate = 100; /* Until we have better information ... */
     trng->e.id = TRNG_E_MEASUREtag;
+    }
   } else {
     rv = TRNG_INIT;
   }

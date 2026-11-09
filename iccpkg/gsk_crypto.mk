@@ -7,8 +7,15 @@
 #
 # GSkit version we are building for
 GSK_VER		=	8
+# ref PACKAGE_DIR
+$(ICC_ROOT)/package:
+	$(MKDIR) $@
+
 # Where we park the binaries
 GSK_DIR		=	$(ICC_ROOT)/package/gskit_crypto
+
+$(GSK_DIR): $(ICC_ROOT)/package
+	$(MKDIR) $@
 
 INST_DIR	=	$(GSK_DIR)
 
@@ -18,6 +25,9 @@ INST_DIR	=	$(GSK_DIR)
 #
 # Where we find the header files for using GSkit-crypto
 GSK_SDK		=	$(ICC_ROOT)/package/gsk_sdk
+
+$(GSK_SDK): $(ICC_ROOT)/package
+	$(MKDIR) $@
 
 #
 # Directories for Java version of GSkit_Crypto

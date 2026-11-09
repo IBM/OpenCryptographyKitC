@@ -1,8 +1,8 @@
 /*************************************************************************
 // Copyright IBM Corp. 2023
 //
-// Licensed under the Apache License 2.0 (the "License").  You may not use
-// this file except in compliance with the License.  You can obtain a copy
+// Licensed under the Apache License 2.0 (the "License"). You may not use
+// this file except in compliance with the License. You can obtain a copy
 // in the file LICENSE in the source distribution.
 *************************************************************************/
 
@@ -26,6 +26,11 @@ static void printbin( char *s,int l)
   fprintf(stderr,"\n");
 }
 #endif
+
+/* can be set externally via ICC_TRNG_FIPS_OSR setting. But not lower than ICC_TRNG_FIPS_OSR_MIN */
+/* Note: 1 does nothing */
+
+unsigned int ex_osr = ICC_TRNG_FIPS_OSR_MIN;
 
 void xcompress(TRNG *T,unsigned char outbuf[SHA_DIGEST_SIZE],unsigned char *in, int len)
 {
@@ -53,16 +58,20 @@ int conditioner(TRNG *T, unsigned char* outbuf, unsigned len)
   unsigned mlen = SHA_DIGEST_SIZE;
   int rv = 0;
   unsigned char tbuf[SHA_DIGEST_SIZE *2];
+
   memset(tbuf,0,SHA_DIGEST_SIZE *2);  
   guarantee = TRNG_guarantee(T);
   while( n < len) {
     HMAC_Init(T->cond.hctx,T->cond.key,sizeof(T->cond.key),T->md);
     /* personalization data */
     HMAC_Update(T->cond.hctx,T->cond.rdata,sizeof(T->cond.rdata));
-    for(j = 0; j < guarantee; j++) { 
+    /* Loop depending on e_guarantee to target max entropy, plus oversampling */
+    for(j = 0; j < guarantee * ex_osr; j++) { 
       if( 0 != trng_raw(&(T->econd),tbuf,SHA_DIGEST_SIZE) ) {
         rv = 1; /* Can't get data, give up here */
         SetRNGError("Insufficient entropy",__FILE__,__LINE__);
+        HMAC_CTX_cleanup(T->cond.hctx);
+        return rv;
       }
       HMAC_Update(T->cond.hctx,tbuf,sizeof(tbuf));
     }
@@ -107,7 +116,9 @@ TRNG_ERRORS Entropy_to_TRNG(TRNG *T, unsigned char *data, unsigned int len)
     {
       for (l = 0; l < len; l += SHA_DIGEST_SIZE)
       {
-        conditioner(T, buffer, SHA_DIGEST_SIZE);
+        if(0 != conditioner(T, buffer, SHA_DIGEST_SIZE)) {
+          break;
+        }
         e = pmax4(buffer,SHA_DIGEST_SIZE);
         if(e < 50) {
           break;

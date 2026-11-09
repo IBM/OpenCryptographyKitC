@@ -1,15 +1,13 @@
 /*************************************************************************
 // Copyright IBM Corp. 2023
 //
-// Licensed under the Apache License 2.0 (the "License").  You may not use
-// this file except in compliance with the License.  You can obtain a copy
+// Licensed under the Apache License 2.0 (the "License"). You may not use
+// this file except in compliance with the License. You can obtain a copy
 // in the file LICENSE in the source distribution.
 *************************************************************************/
-
-/*************************************************************************
+/*
 // Description: Global definitions ubiquitous across ICC
-//
-*************************************************************************/
+*/
 
 /** \file iccglobals.h 
  * @brief ICC Global variable and structure definitions (ICCSDK)
@@ -36,7 +34,7 @@ extern "C" {
   - ICC_OSSL_FAILURE on a verify operation means that the verify failed.
   - ICC_OSSL_FALURE_TOO means that something prevented the verification being done - RNG wasn't initialized for example
   - ICC_FAILURE can occur if ICC wasn't initialized correctly or a FIPS self test error occurred and the API is locked.
-  - ICC_NOT_IMPLEMENTED added for ICCPKG. With two ICC's under the hood, some functions may be missing
+  - ICC_NOT_IMPLEMENTED added for GSKit's ICCPKG. With two ICC's under the hood, some functions may be missing
 */
 typedef enum {
   ICC_NOT_IMPLEMENTED   = -3, /*!< ICCPKG only, function not available */  
@@ -517,8 +515,16 @@ typedef enum {
                                       overhead. This is known thread safe but thread safety
                                       checkers will complain. 
                                       To clear the callback, close the context and
-                                      create a new one.
+                                      create a new one.*/
+
+  ICC_TRACE_CALLBACK = 21,       /*!< Set the Trace callback in THIS context */
+
+  ICC_MODULE_NAME = 22,  /*!< ICC Module name (<b>RO</b>) 
+             - FIPS: Allowed in FIPS mode
+             - Reason: only reads data
                                 */                                    				
+  ICC_TRNG_FIPS_OSR = 25,       /*!< Over sampling rate - factor applied to conditioning step */
+
   GSK_ICC_ACTIVE_LIBS = 52     /*!< Integer bit mask, the low two bits are used.
                                      Bit 0 = 1 the FIPS library is loadable
                                      Bit 1 = 1 the non-FIPS library is loadable

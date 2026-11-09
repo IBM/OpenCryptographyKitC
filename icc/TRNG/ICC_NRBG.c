@@ -1,8 +1,8 @@
 /*************************************************************************
 // Copyright IBM Corp. 2023
 //
-// Licensed under the Apache License 2.0 (the "License").  You may not use
-// this file except in compliance with the License.  You can obtain a copy
+// Licensed under the Apache License 2.0 (the "License"). You may not use
+// this file except in compliance with the License. You can obtain a copy
 // in the file LICENSE in the source distribution.
 *************************************************************************/
 
@@ -30,6 +30,7 @@
 #include "induced.h"
 
 /* Circular dependency */
+unsigned int nonfips_loops();
 unsigned int fips_loops();
 
 #if defined FAST_TEST
@@ -184,7 +185,7 @@ void SetRNGError(const char *msg,const char *file, int line)
 
 const char * GetTRNGNameR(TRNG_TYPE trng) {
   const char *rv = "Invalid";
-  if(trng >= 0 && trng <= NTRNGS) {
+  if(trng >= 0 && trng < NTRNGS) {
     rv = (const char *)TRNG_ARRAY[trng].name;
   }
   return rv;
@@ -347,7 +348,7 @@ static void TRNG_ESourceCleanup(E_SOURCE *es)
     if(NULL != es->impl.cleanup) {
       (es->impl.cleanup)(es);
     }
-    memset(es,0,sizeof(E_SOURCE));
+    ICC_securezero(es,sizeof(E_SOURCE));
   }
 }
 /*! @brief return the NRBG type that's the default within ICC and OpenSSL
@@ -406,13 +407,17 @@ void TRNG_LocalCleanup(TRNG *T)
     /* Clean up the long term test on the TRNG health */
     CleanupEntropyEstimator(T);
     /* Erase it all */
-    memset(T, 0, sizeof(TRNG));
+    ICC_securezero(T, sizeof(TRNG));
   }
 }
 /*!
   @brief Initialize a TRNG of the specified type
   @param T an allocated TRNG data block
   @param type the type of the TRNG
+  - TRNG conditioned event counter. The number of loops required to give high
+         jitter in event counter samples is used and the delta's in event
+         counter timing is are collected, compressed and used directly as an
+  entropy source
   - TRNG_FIPS conditioned event counter. The number of loops required to give high
          jitter in event counter samples is used and the delta's are filtered with a histogram sort
          to ensure they came only from a noise source then filtered.
@@ -433,7 +438,7 @@ TRNG_ERRORS TRNG_TRNG_Init(TRNG *T, TRNG_TYPE type) {
 
   unsigned int e_exp = 0; /* % entropy in the noise at the INPUT of the TRNG core, calced from the bits/byte in TRNG_TYPE */
 
-  if( (type < 0 ) || (type > NTRNGS) ){
+  if( (type < 0 ) || (type >= NTRNGS) ){
     type = global_trng_type;
   }
 
@@ -463,7 +468,7 @@ TRNG_ERRORS TRNG_TRNG_Init(TRNG *T, TRNG_TYPE type) {
     rv = TRNG_INIT;
   }
   if (TRNG_OK == rv) {
-    memset(T->lastdigest,0,sizeof(T->lastdigest));
+    ICC_securezero(T->lastdigest,sizeof(T->lastdigest));
     if (NULL == T->md) {
       T->md = EVP_get_digestbyname(TRNG_DIGEST);
     }
@@ -482,12 +487,12 @@ TRNG_ERRORS TRNG_TRNG_Init(TRNG *T, TRNG_TYPE type) {
   if(TRNG_OK == rv) {
     rv = InitEntropyEstimator(T);
   }
-  /* \FIPS Initialize the HMAC key, 0 is permissable.
-    We can't use the TRNG itself as that's what we
+  /* \FIPS Initialize the HMAC key with whatever noise we 
+    have available. We can't use the TRNG itself as that's what we
     are initializing.
   */
   if (TRNG_OK == rv) {
-    memset(T->cond.key, 0, sizeof(T->cond.key));
+    getbytes(T->cond.key,sizeof(T->cond.key));
   }
   if(TRNG_OK == rv) {
     /* Initialize the TRNG compressor */
@@ -503,12 +508,16 @@ TRNG_ERRORS TRNG_TRNG_Init(TRNG *T, TRNG_TYPE type) {
 
     tmpl = Personalize(NULL);
     tmp = ICC_Calloc(1, tmpl, __FILE__, __LINE__);
+    if (NULL == tmp) {
+      rv = TRNG_INIT;
+    } else {
     /* TRNG retained data */
     Personalize(tmp);
     xcompress(T, T->cond.rdata, tmp, tmpl);
-    memset(tmp, 0, tmpl);
+      ICC_securezero(tmp, tmpl);
     ICC_Free(tmp);
     tmp = NULL;
+  }
   }
   if (TRNG_OK == rv) {
     T->initialized = 1;
@@ -681,7 +690,8 @@ unsigned int Loops()
       l = fips_loops();
       break;
     default:
-      l = 0;
+      l = nonfips_loops();
+      break;
   }
   return l;
 }

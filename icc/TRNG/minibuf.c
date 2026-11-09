@@ -1,10 +1,12 @@
-/*************************************************************************
+/*-----------------------------------------------------------------------------
 // Copyright IBM Corp. 2023
-//                                                                           
-// Licensed under the Apache License 2.0 (the "License").  You may not use
-// this file except in compliance with the License.  You can obtain a copy
+// Licensed under the Apache License 2.0 (the "License").  You may not use
+// this file except in compliance with the License.  You can obtain a copy
 // in the file LICENSE in the source distribution.
-*************************************************************************/
+//
+// Description: minibuffer helper class for the TRNG code.
+//                                                                           
+*******************************************************************************/
 
 
 #include <stdio.h>
@@ -21,7 +23,7 @@ MINIBUF * minib_init(MINIBUF *b,MINIB_FILL_F *g,void *xdata)
       b->allocated = 1;
     }
   } else {
-    memset(b->buffer,0,sizeof(b->buffer));
+    ICC_securezero(b->buffer,sizeof(b->buffer));
   }
   if(NULL != b) {
     b->g = g;
@@ -71,10 +73,10 @@ void minib_free(MINIBUF *b)
 { 
   if(NULL != b) {
     if(b->allocated) {
-      memset(b,0,sizeof(MINIBUF));
+      ICC_securezero(b,sizeof(MINIBUF));
       ICC_Free(b);
     } else {
-      memset(b->buffer,0,MINIBUF_SIZE);
+      ICC_securezero(b->buffer,MINIBUF_SIZE);
       b->index = -1;
     }
   }

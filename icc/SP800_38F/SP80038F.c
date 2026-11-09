@@ -1,8 +1,8 @@
 /*************************************************************************
 // Copyright IBM Corp. 2023
 //
-// Licensed under the Apache License 2.0 (the "License").  You may not use
-// this file except in compliance with the License.  You can obtain a copy
+// Licensed under the Apache License 2.0 (the "License"). You may not use
+// this file except in compliance with the License. You can obtain a copy
 // in the file LICENSE in the source distribution.
 *************************************************************************/
 
@@ -15,6 +15,7 @@
 #include <openssl/evp.h>
 #include <string.h>
 #include "icc.h"
+#include "platform.h"
 #include "fips-prng/utils.h"
 
 extern void * CRYPTO_calloc(int nmemb,int size,const char *file, int line);
@@ -206,7 +207,7 @@ static int KW(unsigned char *in, int inl, unsigned char *out, int *outl, unsigne
       }
       /* 2 to (2^54)-1 semiblocks */
       if((sizeof(n) > 4) && (sizeof(long) > 4)) {
-#if defined(WIN64)
+#if defined(_WIN64)
 	long long l  = 0x40000000000000 - 1;
 #else
 	long l = 0x40000000000000 - 1;
@@ -339,7 +340,7 @@ static int KU(unsigned char *in, int inl, unsigned char *out, int *outl, unsigne
   KWX T[2];
   KWX A;
   int bytes = 0;
-#if defined(WIN64)
+#if defined(_WIN64)
   long long l = 0;
 #else
   long l = 0;
@@ -466,7 +467,7 @@ static int KU(unsigned char *in, int inl, unsigned char *out, int *outl, unsigne
 	  } 
 	  for(  ; i < 8; i++) { /* And check that the padding WAS 0's */
 	    if(R[j].F[i] != 0) {
-	      memset(out,0,*outl); /* On a padding error Scrub what was decrypted so far */
+	      ICC_securezero(out,*outl); /* On a padding error Scrub what was decrypted so far */
 	      (*outl) = 0;
 	      rv = SP800_38F_MAC; /* Padding error in final block */
 	    }
@@ -586,10 +587,7 @@ void Add_BE(unsigned char *dest,
 void *CRYPTO_calloc(int nmemb, int size,const char *file,int line)
 {
   void *ptr = NULL;
-  ptr = CRYPTO_malloc(nmemb*size,file,line);
-  if(NULL != ptr) {
-    memset(ptr,0,nmemb*size);
-  }
+  ptr = CRYPTO_zalloc(nmemb*size,file,line);
   return ptr;
 }
 int main(int argc, char *argv[])
